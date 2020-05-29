@@ -9,11 +9,18 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-# to test this container by attaching bash shell, need a non-scratch base like ubi8-minimal
-# FROM ubi8-minimal
-FROM scratch
+FROM ubi8
 
 # not applicable to Che, only needed for CRW
 ADD controller-manifests /manifests
+ADD build /build
+RUN /build/scripts/swap_images.sh /manifests
+
+
+# to test this container by attaching bash shell, need a non-scratch base like ubi8-minimal
+# ubi8-minimal
+FROM scratch
+
+COPY --from=0 /manifests /manifests
 
 # append Brew metadata here (it will be appended via https://github.com/redhat-developer/codeready-workspaces-operator/blob/master/operator-metadata.Jenkinsfile)
