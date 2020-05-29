@@ -18,7 +18,7 @@ RUN /build/scripts/swap_images.sh /manifests
 
 
 # to test this container by attaching bash shell, need a non-scratch base like ubi8-minimal
-# ubi8-minimal
+# FROM ubi8-minimal
 FROM scratch
 
 COPY --from=0 /manifests /manifests
