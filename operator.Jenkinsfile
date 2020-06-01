@@ -2,17 +2,21 @@
 
 // PARAMETERS for this pipeline:
 // def FORCE_BUILD = "false"
-// def SOURCE_BRANCH = "master" // branch of source repo from which to find and sync commits to pkgs.devel repo
+// def SOURCE_BRANCH = "7.13.x" or "master" // branch of source repo from which to find and sync commits to pkgs.devel repo
 
 def SOURCE_REPO = "eclipse/che-operator" //source repo from which to find and sync commits to pkgs.devel repo
-def GIT_PATH = "containers/codeready-workspaces-operator" // dist-git repo to use as target
 
-def GIT_BRANCH = "crw-2.2-rhel-8" // target branch in dist-git repo, eg., crw-2.2-rhel-8
+def MIDSTM_REPO = "redhat-developer/codeready-workspaces-operator" // GH repo to use as target for deploy/ folder
+def DWNSTM_REPO = "containers/codeready-workspaces-operator" // dist-git repo to use as target for everything
+
+def MIDSTM_BRANCH = "master"         // target branch in GH repo, eg., master or 2.2.x
+def DWNSTM_BRANCH = "crw-2.2-rhel-8" // target branch in dist-git repo, eg., crw-2.2-rhel-8
 def SCRATCH = "false"
 def PUSH_TO_QUAY = "true"
 def QUAY_PROJECT = "operator" // also used for the Brew dockerfile params
 
-def OLD_SHA=""
+def OLD_SHA_MID=""
+def OLD_SHA_DWN=""
 
 def buildNode = "rhel7-releng" // slave label
 timeout(120) {
@@ -78,44 +82,68 @@ cd ${WORKSPACE}/sources
   SOURCE_SHA=$(git rev-parse HEAD) # echo ${SOURCE_SHA:0:8}
 cd ..
 
+# get midstream repo sources
+MIDSTM_REPO="''' + MIDSTM_REPO + '''"
+if [[ ! -d ${WORKSPACE}/targetmid ]]; then git clone https://github.com/${MIDSTM_REPO} targetmid; fi
+cd ${WORKSPACE}/targetmid
+  git checkout --track origin/''' + MIDSTM_BRANCH + ''' || true
+  git config user.email "nickboldt+devstudio-release@gmail.com"
+  git config user.name "Red Hat Devstudio Release Bot"
+  git config --global push.default matching
+  MIDSTM_SHA=$(git rev-parse HEAD) # echo ${MIDSTM_SHA:0:8}
+
+  # SOLVED :: Fatal: Could not read Username for "https://github.com", No such device or address :: https://github.com/github/hub/issues/1644
+  git remote -v
+  git config --global hub.protocol https
+  git remote set-url origin https://\$GITHUB_TOKEN:x-oauth-basic@github.com/''' + MIDSTM_REPO + '''.git
+  git remote -v
+cd ..
+
 # fetch sources to be updated
-GIT_PATH="''' + GIT_PATH + '''"
-if [[ ! -d ${WORKSPACE}/target ]]; then git clone ssh://crw-build@pkgs.devel.redhat.com/${GIT_PATH} target; fi
-cd ${WORKSPACE}/target
-git checkout --track origin/''' + GIT_BRANCH + ''' || true
-git config user.email crw-build@REDHAT.COM
-git config user.name "CRW Build"
-git config --global push.default matching
+DWNSTM_REPO="''' + DWNSTM_REPO + '''"
+if [[ ! -d ${WORKSPACE}/targetdwn ]]; then git clone ssh://crw-build@pkgs.devel.redhat.com/${DWNSTM_REPO} targetdwn; fi
+cd ${WORKSPACE}/targetdwn
+  git checkout --track origin/''' + DWNSTM_BRANCH + ''' || true
+  git config user.email crw-build@REDHAT.COM
+  git config user.name "CRW Build"
+  git config --global push.default matching
 cd ..
 
 '''
+          def SYNC_FILES_MID = "deploy"
+          def SYNC_FILES_DWN = ".dockerignore .gitignore cmd deploy deploy.sh e2e go.mod go.sum Gopkg.lock Gopkg.toml LICENSE olm pkg README.md templates vendor version"
+
 		      sh BOOTSTRAP
 
-		      OLD_SHA = sh(script: '''#!/bin/bash -xe
-		      cd ${WORKSPACE}/target; git rev-parse HEAD
+		      OLD_SHA_MID = sh(script: '''#!/bin/bash -xe
+		      cd ${WORKSPACE}/targetmid; git rev-parse HEAD
 		      ''', returnStdout: true)
-		      println "Got OLD_SHA in target folder: " + OLD_SHA
+		      println "Got OLD_SHA_MID in targetmid folder: " + OLD_SHA_MID
 
-          def SYNC_FILES = ".dockerignore .gitignore cmd deploy deploy.sh e2e go.mod go.sum Gopkg.lock Gopkg.toml LICENSE olm pkg README.md templates vendor version"
+		      OLD_SHA_DWN = sh(script: '''#!/bin/bash -xe
+		      cd ${WORKSPACE}/targetdwn; git rev-parse HEAD
+		      ''', returnStdout: true)
+		      println "Got OLD_SHA_DWN in targetdwn folder: " + OLD_SHA_DWN
+
 		      sh BOOTSTRAP + '''
 
 # rsync files in github to dist-git
-for d in ''' + SYNC_FILES + '''; do
+for d in ''' + SYNC_FILES_DWN + '''; do
   if [[ -f ${WORKSPACE}/sources/${d} ]]; then
-    rsync -zrlt ${WORKSPACE}/sources/${d} ${WORKSPACE}/target/${d}
+    rsync -zrlt ${WORKSPACE}/sources/${d} ${WORKSPACE}/targetdwn/${d}
   elif [[ -d ${WORKSPACE}/sources/${d} ]]; then
     # copy over the files
-    rsync -zrlt ${WORKSPACE}/sources/${d}/* ${WORKSPACE}/target/${d}/
-    # sync the directory and delete from target if deleted from source
-    rsync -zrlt --delete ${WORKSPACE}/sources/${d}/ ${WORKSPACE}/target/${d}/
+    rsync -zrlt ${WORKSPACE}/sources/${d}/* ${WORKSPACE}/targetdwn/${d}/
+    # sync the directory and delete from targetdwn if deleted from source
+    rsync -zrlt --delete ${WORKSPACE}/sources/${d}/ ${WORKSPACE}/targetdwn/${d}/
   fi
 done
 
 '''
           // OLD way
-	  // def CRW_OPERATOR_IMAGE = "registry.redhat.io/codeready-workspaces/crw-2-rhel8-operator:latest"
+      	  // def CRW_OPERATOR_IMAGE = "registry.redhat.io/codeready-workspaces/crw-2-rhel8-operator:latest"
 		      // // relative to $WORKSPACE
-		      // def files = findFiles(glob: 'target/deploy/**/*')
+		      // def files = findFiles(glob: 'targetdwn/deploy/**/*')
 		      // files.each {
           //       println it.path
           //       // global string replacements in deploy scripts
@@ -129,7 +157,7 @@ done
 		      // }
 
           //     // replacements in deploy/crds/org_v1_che_cr.yaml
-          //     def cryaml = "target/deploy/crds/org_v1_che_cr.yaml"
+          //     def cryaml = "targetdwn/deploy/crds/org_v1_che_cr.yaml"
           //     println cryaml
           //     writeFile file: cryaml, text: readFile(cryaml)
           //       .replaceAll("cheFlavor: ''", "cheFlavor: 'codeready'")
@@ -144,11 +172,11 @@ done
           sudo pip3 install yq
           jq --version
           yq --version
-          ${WORKSPACE}/target/build/scripts/sync-che-operator-to-crw-operator.sh ${WORKSPACE}/sources/ ${WORKSPACE}/target/
+          ${WORKSPACE}/targetdwn/build/scripts/sync-che-operator-to-crw-operator.sh ${WORKSPACE}/sources/ ${WORKSPACE}/targetdwn/
           '''
 
           // get latest tags for the operator deployed images
-          def opyaml = "target/deploy/operator.yaml"
+          def opyaml = "${WORKSPACE}/targetdwn/deploy/operator.yaml"
           def images = [
             "registry.redhat.io/codeready-workspaces/server-rhel8",
             "registry.redhat.io/codeready-workspaces/pluginregistry-rhel8",
@@ -166,18 +194,18 @@ done
             result.replaceAll("$it:.+", "$it:" + latestTag)
           }
           writeFile file: opyaml, text: result
-
+          
 		      sh BOOTSTRAP + '''
 
 # remove unneeded olm files
-rm -fr ${WORKSPACE}/target/olm/eclipse-che-preview-openshift ${WORKSPACE}/target/olm/eclipse-che-preview-kubernetes
+rm -fr ${WORKSPACE}/targetdwn/olm/eclipse-che-preview-openshift ${WORKSPACE}/targetdwn/olm/eclipse-che-preview-kubernetes
 
-cp -f ${SOURCEDOCKERFILE} ${WORKSPACE}/target/Dockerfile
+cp -f ${SOURCEDOCKERFILE} ${WORKSPACE}/targetdwn/Dockerfile
 
 # TODO should this be a branch instead of just master?
 CRW_VERSION=`wget -qO- https://raw.githubusercontent.com/redhat-developer/codeready-workspaces/master/dependencies/VERSION`
 #apply patches
-sed -i ${WORKSPACE}/target/Dockerfile \
+sed -i ${WORKSPACE}/targetdwn/Dockerfile \
   -e "s#FROM registry.redhat.io/#FROM #g" \
   -e "s#FROM registry.access.redhat.com/#FROM #g" \
   -e "s/# *RUN yum /RUN yum /g" \
@@ -200,28 +228,64 @@ LABEL summary="$SUMMARY" \\\r
       com.redhat.delivery.appregistry="false" \\\r
       usage="" \r'
 
-echo -e "$METADATA" >> ${WORKSPACE}/target/Dockerfile
+echo -e "$METADATA" >> ${WORKSPACE}/targetdwn/Dockerfile
 
 # push changes in github to dist-git
-cd ${WORKSPACE}/target
+cd ${WORKSPACE}/targetdwn
 if [[ \$(git diff --name-only) ]]; then # file changed
-	OLD_SHA=\$(git rev-parse HEAD) # echo ${OLD_SHA:0:8}
-	git add Dockerfile ''' + SYNC_FILES + '''
-  /tmp/updateBaseImages.sh -b ''' + GIT_BRANCH + ''' --nocommit
-  # note this might fail if we're syncing from a tag vs. a branch
-  git commit -s -m "[sync] Update from ''' + SOURCE_REPO + ''' @ ${SOURCE_SHA:0:8}" Dockerfile ''' + SYNC_FILES + ''' || true
-  git push origin ''' + GIT_BRANCH + ''' || true
-  NEW_SHA=\$(git rev-parse HEAD) # echo ${NEW_SHA:0:8}
-  if [[ "${OLD_SHA}" != "${NEW_SHA}" ]]; then hasChanged=1; fi
-  echo "[sync] Updated pkgs.devel @ ${NEW_SHA:0:8} from ''' + SOURCE_REPO + ''' @ ${SOURCE_SHA:0:8}"
+	OLD_SHA_DWN=\$(git rev-parse HEAD) # echo ${OLD_SHA_DWN:0:8}
+	git add Dockerfile ''' + SYNC_FILES_DWN + '''
+  /tmp/updateBaseImages.sh -b ''' + DWNSTM_BRANCH + ''' --nocommit
+  # note this might fail if we sync from a tag vs. a branch
+  git commit -s -m "[sync] Update from ''' + SOURCE_REPO + ''' @ ${SOURCE_SHA:0:8}" Dockerfile ''' + SYNC_FILES_DWN + ''' || true
+  git push origin ''' + DWNSTM_BRANCH + ''' || true
+  NEW_SHA_DWN=\$(git rev-parse HEAD) # echo ${NEW_SHA_DWN:0:8}
+  if [[ "${OLD_SHA_DWN}" != "${NEW_SHA_DWN}" ]]; then hasChanged=1; fi
+  echo "[sync] Updated pkgs.devel @ ${NEW_SHA_DWN:0:8} from ''' + SOURCE_REPO + ''' @ ${SOURCE_SHA:0:8}"
 else
     # file not changed, but check if base image needs an update
     # (this avoids having 2 commits for every change)
-    cd ${WORKSPACE}/target
-    OLD_SHA=\$(git rev-parse HEAD) # echo ${OLD_SHA:0:8}
-    /tmp/updateBaseImages.sh -b ''' + GIT_BRANCH + '''
-    NEW_SHA=\$(git rev-parse HEAD) # echo ${NEW_SHA:0:8}
-    if [[ "${OLD_SHA}" != "${NEW_SHA}" ]]; then hasChanged=1; fi
+    cd ${WORKSPACE}/targetdwn
+    OLD_SHA_DWN=\$(git rev-parse HEAD) # echo ${OLD_SHA_DWN:0:8}
+    /tmp/updateBaseImages.sh -b ''' + DWNSTM_BRANCH + '''
+    NEW_SHA_DWN=\$(git rev-parse HEAD) # echo ${NEW_SHA_DWN:0:8}
+    if [[ "${OLD_SHA_DWN}" != "${NEW_SHA_DWN}" ]]; then hasChanged=1; fi
+    cd ..
+fi
+cd ..
+
+# now rsync files to MIDSTM GH repo from changes in dist-git
+for d in ''' + SYNC_FILES_MID + '''; do
+  if [[ -f ${WORKSPACE}/targetdwn/${d} ]]; then
+    rsync -zrlt ${WORKSPACE}/targetdwn/${d} ${WORKSPACE}/targetmid/${d}
+  elif [[ -d ${WORKSPACE}/targetdwn/${d} ]]; then
+    # copy over the files
+    rsync -zrlt ${WORKSPACE}/targetdwn/${d}/* ${WORKSPACE}/targetmid/${d}/
+    # sync the directory and delete from targetmid if deleted from source
+    rsync -zrlt --delete ${WORKSPACE}/targetdwn/${d}/ ${WORKSPACE}/targetmid/${d}/
+  fi
+done
+
+# push changes to github from dist-git
+cd ${WORKSPACE}/targetmid
+if [[ \$(git diff --name-only) ]]; then # file changed
+	OLD_SHA_MID=\$(git rev-parse HEAD) # echo ${OLD_SHA_MID:0:8}
+	git add Dockerfile ''' + SYNC_FILES_MID + '''
+  /tmp/updateBaseImages.sh -b ''' + MIDSTM_BRANCH + ''' --nocommit
+  # note this might fail if we sync from a tag vs. a branch
+  git commit -s -m "[sync] Update from ''' + SOURCE_REPO + ''' @ ${SOURCE_SHA:0:8}" ''' + SYNC_FILES_MID + ''' || true
+  git push origin ''' + MIDSTM_BRANCH + ''' || true
+  NEW_SHA_MID=\$(git rev-parse HEAD) # echo ${NEW_SHA_MID:0:8}
+  if [[ "${OLD_SHA_MID}" != "${NEW_SHA_MID}" ]]; then hasChanged=1; fi
+  echo "[sync] Updated pkgs.devel @ ${NEW_SHA_MID:0:8} from ''' + SOURCE_REPO + ''' @ ${SOURCE_SHA:0:8}"
+else
+    # file not changed, but check if base image needs an update
+    # (this avoids having 2 commits for every change)
+    cd ${WORKSPACE}/targetmid
+    OLD_SHA_MID=\$(git rev-parse HEAD) # echo ${OLD_SHA_MID:0:8}
+    /tmp/updateBaseImages.sh -b ''' + MIDSTM_BRANCH + '''
+    NEW_SHA_MID=\$(git rev-parse HEAD) # echo ${NEW_SHA_MID:0:8}
+    if [[ "${OLD_SHA_MID}" != "${NEW_SHA_MID}" ]]; then hasChanged=1; fi
     cd ..
 fi
 cd ..
@@ -234,7 +298,7 @@ if [[ ${hasChanged} -eq 1 ]]; then
 "https://codeready-workspaces-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/job/get-sources-rhpkg-container-build/buildWithParameters?\
 token=CI_BUILD&\
 cause=${QUAY_REPO_PATH}+respin+by+${BUILD_TAG}&\
-GIT_BRANCH=''' + GIT_BRANCH + '''&\
+GIT_BRANCH=''' + DWNSTM_BRANCH + '''&\
 GIT_PATHs=containers/codeready-workspaces-${QRP}&\
 QUAY_REPO_PATHs=${QUAY_REPO_PATH}&\
 JOB_BRANCH=master&\
@@ -248,12 +312,17 @@ if [[ ${hasChanged} -eq 0 ]]; then
 fi
 '''
     		}
-	        def NEW_SHA = sh(script: '''#!/bin/bash -xe
-	        cd ${WORKSPACE}/target; git rev-parse HEAD
+	        def NEW_SHA_MID = sh(script: '''#!/bin/bash -xe
+	        cd ${WORKSPACE}/targetmid; git rev-parse HEAD
 	        ''', returnStdout: true)
-	        println "Got NEW_SHA in target folder: " + NEW_SHA
+	        println "Got NEW_SHA_MID in targetmid folder: " + NEW_SHA_MID
 
-	        if (NEW_SHA.equals(OLD_SHA) && !FORCE_BUILD.equals("true")) {
+	        def NEW_SHA_DWN = sh(script: '''#!/bin/bash -xe
+	        cd ${WORKSPACE}/targetdwn; git rev-parse HEAD
+	        ''', returnStdout: true)
+	        println "Got NEW_SHA_DWN in targetdwn folder: " + NEW_SHA_DWN
+
+	        if (NEW_SHA_MID.equals(OLD_SHA_MID) && NEW_SHA_DWN.equals(OLD_SHA_DWN) && !FORCE_BUILD.equals("true")) {
 	          currentBuild.result='UNSTABLE'
 	        }
     }
