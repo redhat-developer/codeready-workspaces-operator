@@ -9,7 +9,8 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-FROM ubi8-minimal:8.2-267 as builder
+# https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/ubi8-minimal
+FROM registry.access.redhat.com/ubi8-minimal:8.2-267 as builder
 RUN microdnf install -y findutils
 
 # not applicable to Che, only needed for CRW
@@ -17,11 +18,7 @@ ADD controller-manifests /manifests
 ADD build /build
 RUN /build/scripts/swap_images.sh /manifests
 
-
-# to test this container by attaching bash shell, need a non-scratch base like ubi8-minimal
-# FROM ubi8-minimal
 FROM scratch
-
 COPY --from=builder /manifests /manifests
 
 # append Brew metadata here (it will be appended via https://github.com/redhat-developer/codeready-workspaces-operator/blob/master/operator-metadata.Jenkinsfile)
