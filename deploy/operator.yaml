@@ -50,8 +50,6 @@ spec:
               value: registry.redhat.io/codeready-workspaces/pluginregistry-rhel8:2.2
             - name: IMAGE_default_devfile_registry
               value: registry.redhat.io/codeready-workspaces/devfileregistry-rhel8:2.2
-            - name: IMAGE_default_che_tls_secrets_creation_job
-              value: quay.io/eclipse/che-tls-secret-creator:alpine-3029769
             - name: IMAGE_default_pvc_jobs
               value: registry.access.redhat.com/ubi8-minimal:8.2
             - name: IMAGE_default_postgres
