@@ -73,8 +73,8 @@ for image in ${OPERATOR_IMAGE} ${IMAGE_LIST} ${REGISTRY_IMAGES_ALL}; do
     *@)
       continue;;
     *)
-        # for other build methods or for falling back to other registries when not found, can apply transforms here
-      orig_image={$image}
+      # for other build methods or for falling back to other registries when not found, can apply transforms here
+      orig_image="${image}"
       if [[ -x ${SCRIPTS_DIR}/buildDigestMapAlternateURLs.sh ]]; then
         . ${SCRIPTS_DIR}/buildDigestMapAlternateURLs.sh
       fi
