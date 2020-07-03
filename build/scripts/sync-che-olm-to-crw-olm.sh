@@ -14,6 +14,7 @@
 
 set -e
 
+SCRIPTS_DIR=$(cd "$(dirname "$0")"; pwd)
 # defaults
 CRW_VERSION=2.2.0
 CRW_VERSION_PREV=2.1.1
@@ -33,13 +34,23 @@ CHE_VERSION="$(curl -sSLo - https://raw.githubusercontent.com/redhat-developer/c
 
 pushd "${SOURCEDIR}" >/dev/null || exit
 
+# Copy digests scripts
+cp "${SOURCEDIR}/olm/addDigests.sh" "${SOURCEDIR}/olm/images.sh" "${SOURCEDIR}/olm/buildDigestMap.sh" "${SCRIPTS_DIR}"
+# Fix "help" messages for digest scripts
+sed -r \
+	-e 's|("Example:).*"|\1 $0 -w $(pwd) -s controller-manifests/v2.1.0 -r \\".*.csv.yaml\\" -t 2.1"|g' \
+	-i "${SCRIPTS_DIR}/addDigests.sh"
+sed -r \
+	-e 's|("Example:).*"|\1 $0 -w $(pwd) -c $(pwd)/controller-manifests/v2.1.0/codeready-workspaces.csv.yaml -t 2.1"|g' \
+	-i "${SCRIPTS_DIR}/buildDigestMap.sh"
+
 # simple copy
 # TODO when we switch to OCP 4.6 format, remove updates to controller-manifests/v${CRW_VERSION} folder
 for CRDFILE in \
 	"${TARGETDIR}/controller-manifests/v${CRW_VERSION}/codeready-workspaces.crd.yaml" \
 	"${TARGETDIR}/manifests/codeready-workspaces.crd.yaml" \
 	"${TARGETDIR}/deploy/crds/org_v1_che_crd.yaml"; do
-	cp olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/"${CHE_VERSION}"/*crd.yaml "${CRDFILE}"
+	cp "${SOURCEDIR}"/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/"${CHE_VERSION}"/*crd.yaml "${CRDFILE}"
 done
 
 ICON="$(cat "${TARGETDIR}/build/scripts/sync-che-olm-to-crw-olm.icon.txt")"
@@ -116,7 +127,7 @@ yq  -Y '.spec.displayName="Red Hat CodeReady Workspaces"')" && \
 # 		changed="$(cat "${CSVFILE}" | \
 # yq  -y --arg updateName "${updateName}" --arg updateVal "${operator_replacements[$updateName]}" \
 # '.spec.install.spec.deployments[].spec.template.spec.containers[].env = [.spec.install.spec.deployments[].spec.template.spec.containers[].env[] | if (.name == $updateName) then (.value = $updateVal) else . end]' | \
-# yq  -y 'del(.spec.template.spec.containers[0].env[] | select(.name == "IMAGE_default_che_tls_secrets_creation_job"))')" && \
+# yq  -y 'del(.spec.template.spec.containers[0].env[] | select(.name == "RELATED_IMAGE_che_tls_secrets_creation_job"))')" && \
 # 		echo "${changed}" > "${CSVFILE}"
 	# done
 # 	if [[ $(diff -u "${SOURCEDIR}/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/${CHE_VERSION}"/*clusterserviceversion.yaml "${CSVFILE}") ]]; then

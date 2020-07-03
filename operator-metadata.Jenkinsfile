@@ -153,7 +153,7 @@ sed -r \
 # 2. generate digests
 pushd ${WORKSPACE}/target >/dev/null
 # TODO CRW 2.3 / OCP 4.6 switch to use manifests folder
-./build/scripts/addDigests.sh -s controller-manifests -n codeready-workspaces -v ${CSV_VERSION} -t ${CRW_VERSION}
+./build/scripts/addDigests.sh -s controller-manifests/v${CSV_VERSION} -r ".*.csv.yaml" -t ${CRW_VERSION}
 popd >/dev/null
 # 3. switch back to use RHCC container names
 sed -r \
