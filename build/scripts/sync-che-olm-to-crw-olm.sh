@@ -13,21 +13,35 @@
 # convert che-operator olm files (csv, crd) to downstream using transforms
 
 set -e
-
 SCRIPTS_DIR=$(cd "$(dirname "$0")"; pwd)
+
 # defaults
 CRW_VERSION=2.2.0
+CRW_TAG=${CRW_VERSION%.*}
 CRW_VERSION_PREV=2.1.1
-CRW_TAG="${CRW_VERSION%.*}"
 
-if [[ $# -lt 2 ]]; then
-	echo "Usage:   $0 SOURCEDIR TARGETDIR "
-	echo "Example: $0 /path/to/che-operator /path/to/crw-operator"
-	exit 1
-fi
+usage () {
+	echo "Usage:   $0 -v [VERSION] [-p PREV_VERSION] [-s /path/to/sources] [-t /path/to/generated]"
+	echo "Example: $0 -v 2.2.0 -p 2.1.1 -s ${HOME}/projects/che-operator -t /tmp/crw-operator"
+}
 
-SOURCEDIR=$1; SOURCEDIR=${SOURCEDIR%/}
-TARGETDIR=$2; TARGETDIR=${TARGETDIR%/}
+if [[ $# -lt 8 ]]; then usage; exit; fi
+
+while [[ "$#" -gt 0 ]]; do
+  case $1 in
+	# for CRW_VERSION = 2.2.0, get CRW_TAG = 2.2
+	'-v') CRW_VERSION="$1"; CRW_TAG="${CRW_VERSION%.*}" shift 1;;
+	# previous version to set in CSV
+	'-p') CRW_VERSION_PREV="$1"; shift 1;;
+	# paths to use for input and ouput
+	'-s') SOURCEDIR="$1"; SOURCEDIR="${SOURCEDIR%/}"; shit 1;;
+	'-t') TARGETDIR="$2"; TARGETDIR="${TARGETDIR%/}"; shit 1;;
+	'--help'|'-h') usage; exit;;
+	# optional tag overrides
+	'--crw-tag') CRW_TAG="$1"; shift 1;;
+  esac
+  shift 1
+done
 
 # get che version from crw server root pom, eg., 7.14.3
 CHE_VERSION="$(curl -sSLo - https://raw.githubusercontent.com/redhat-developer/codeready-workspaces/master/pom.xml | grep -E "<che.version>" | sed -r -e "s#.+<che.version>(.+)</che.version>#\1#" || exit 1)"
@@ -38,10 +52,10 @@ pushd "${SOURCEDIR}" >/dev/null || exit
 cp "${SOURCEDIR}/olm/addDigests.sh" "${SOURCEDIR}/olm/images.sh" "${SOURCEDIR}/olm/buildDigestMap.sh" "${SCRIPTS_DIR}"
 # Fix "help" messages for digest scripts
 sed -r \
-	-e 's|("Example:).*"|\1 $0 -w $(pwd) -s controller-manifests/v2.1.0 -r \\".*.csv.yaml\\" -t 2.1"|g' \
+	-e 's|("Example:).*"|\1 $0 -w $(pwd) -s controller-manifests/v'${CRW_VERSION}' -r \\".*.csv.yaml\\" -t '${CRW_TAG}'"|g' \
 	-i "${SCRIPTS_DIR}/addDigests.sh"
 sed -r \
-	-e 's|("Example:).*"|\1 $0 -w $(pwd) -c $(pwd)/controller-manifests/v2.1.0/codeready-workspaces.csv.yaml -t 2.1"|g' \
+	-e 's|("Example:).*"|\1 $0 -w $(pwd) -c $(pwd)/controller-manifests/v'${CRW_VERSION}'/codeready-workspaces.csv.yaml -t '${CRW_TAG}'"|g' \
 	-i "${SCRIPTS_DIR}/buildDigestMap.sh"
 
 # simple copy
