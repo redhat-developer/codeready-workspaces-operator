@@ -110,8 +110,9 @@ cd ${WORKSPACE}/targetdwn
 cd ..
 
 '''
-          def SYNC_FILES_MID = "deploy"
-          def SYNC_FILES_DWN = ".dockerignore .gitignore cmd deploy deploy.sh e2e go.mod go.sum Gopkg.lock Gopkg.toml LICENSE olm pkg README.md templates vendor version"
+          def SYNC_FILES_UP2DWN = ".dockerignore .gitignore cmd deploy deploy.sh e2e go.mod go.sum Gopkg.lock Gopkg.toml LICENSE olm pkg README.md templates vendor version"
+          def SYNC_FILES_MID2DWN = "build"
+          def SYNC_FILES_DWN2MID = "deploy"
 
 		      sh BOOTSTRAP
 
@@ -127,8 +128,8 @@ cd ..
 
 		      sh BOOTSTRAP + '''
 
-# rsync files in github to dist-git
-for d in ''' + SYNC_FILES_DWN + '''; do
+# rsync files in upstream github to dist-git
+for d in ''' + SYNC_FILES_UP2DWN + '''; do
   if [[ -f ${WORKSPACE}/sources/${d} ]]; then
     rsync -zrlt ${WORKSPACE}/sources/${d} ${WORKSPACE}/targetdwn/${d}
   elif [[ -d ${WORKSPACE}/sources/${d} ]]; then
@@ -136,6 +137,18 @@ for d in ''' + SYNC_FILES_DWN + '''; do
     rsync -zrlt ${WORKSPACE}/sources/${d}/* ${WORKSPACE}/targetdwn/${d}/
     # sync the directory and delete from targetdwn if deleted from source
     rsync -zrlt --delete ${WORKSPACE}/sources/${d}/ ${WORKSPACE}/targetdwn/${d}/
+  fi
+done
+
+# rsync files in midstream github to dist-git
+for d in ''' + SYNC_FILES_MID2DWN + '''; do
+  if [[ -f ${WORKSPACE}/targetmid/${d} ]]; then
+    rsync -zrlt ${WORKSPACE}/targetmid/${d} ${WORKSPACE}/targetdwn/${d}
+  elif [[ -d ${WORKSPACE}/targetmid/${d} ]]; then
+    # copy over the files
+    rsync -zrlt ${WORKSPACE}/targetmid/${d}/* ${WORKSPACE}/targetdwn/${d}/
+    # sync the directory and delete from targetdwn if deleted from source
+    rsync -zrlt --delete ${WORKSPACE}/targetmid/${d}/ ${WORKSPACE}/targetdwn/${d}/
   fi
 done
 
@@ -172,7 +185,8 @@ done
           sudo /usr/bin/python3 -m pip install --upgrade pip; sudo /usr/bin/python3 -m pip install yq
           jq --version
           yq --version
-          ${WORKSPACE}/targetdwn/build/scripts/sync-che-operator-to-crw-operator.sh ${WORKSPACE}/sources/ ${WORKSPACE}/targetdwn/
+          CSV_VERSION="$(curl -sSLo - https://raw.githubusercontent.com/redhat-developer/codeready-workspaces/master/pom.xml | grep "<version>" | head -2 | tail -1 | sed -r -e "s#.*<version>(.+)</version>.*#\\1#")"
+          ${WORKSPACE}/targetdwn/build/scripts/sync-che-operator-to-crw-operator.sh -v ${CSV_VERSION} -s ${WORKSPACE}/sources/ -t ${WORKSPACE}/targetdwn/
           '''
 
           // get latest tags for the operator deployed images
@@ -234,10 +248,10 @@ echo -e "$METADATA" >> ${WORKSPACE}/targetdwn/Dockerfile
 cd ${WORKSPACE}/targetdwn
 if [[ \$(git diff --name-only) ]]; then # file changed
 	OLD_SHA_DWN=\$(git rev-parse HEAD) # echo ${OLD_SHA_DWN:0:8}
-	git add Dockerfile ''' + SYNC_FILES_DWN + ''' .
+	git add Dockerfile ''' + SYNC_FILES_MID2DWN + SYNC_FILES_UP2DWN + ''' .
   /tmp/updateBaseImages.sh -b ''' + DWNSTM_BRANCH + ''' --nocommit || true
   # note this might fail if we sync from a tag vs. a branch
-  git commit -s -m "[sync] Update from ''' + SOURCE_REPO + ''' @ ${SOURCE_SHA:0:8}" Dockerfile ''' + SYNC_FILES_DWN + ''' . || true
+  git commit -s -m "[sync] Update from ''' + SOURCE_REPO + ''' @ ${SOURCE_SHA:0:8}" Dockerfile ''' + SYNC_FILES_MID2DWN + SYNC_FILES_UP2DWN + ''' . || true
   git push origin ''' + DWNSTM_BRANCH + ''' || true
   NEW_SHA_DWN=\$(git rev-parse HEAD) # echo ${NEW_SHA_DWN:0:8}
   if [[ "${OLD_SHA_DWN}" != "${NEW_SHA_DWN}" ]]; then hasChanged=1; fi
@@ -255,7 +269,7 @@ fi
 cd ..
 
 # now rsync files to MIDSTM GH repo from changes in dist-git
-for d in ''' + SYNC_FILES_MID + '''; do
+for d in ''' + SYNC_FILES_DWN2MID + '''; do
   if [[ -f ${WORKSPACE}/targetdwn/${d} ]]; then
     rsync -zrlt ${WORKSPACE}/targetdwn/${d} ${WORKSPACE}/targetmid/${d}
   elif [[ -d ${WORKSPACE}/targetdwn/${d} ]]; then
@@ -270,10 +284,10 @@ done
 cd ${WORKSPACE}/targetmid
 if [[ \$(git diff --name-only) ]]; then # file changed
 	OLD_SHA_MID=\$(git rev-parse HEAD) # echo ${OLD_SHA_MID:0:8}
-	git add ''' + SYNC_FILES_MID + '''
+	git add ''' + SYNC_FILES_DWN2MID + '''
   /tmp/updateBaseImages.sh -b ''' + MIDSTM_BRANCH + ''' --nocommit
   # note this might fail if we sync from a tag vs. a branch
-  git commit -s -m "[sync] Update from ''' + SOURCE_REPO + ''' @ ${SOURCE_SHA:0:8}" ''' + SYNC_FILES_MID + ''' || true
+  git commit -s -m "[sync] Update from ''' + SOURCE_REPO + ''' @ ${SOURCE_SHA:0:8}" ''' + SYNC_FILES_DWN2MID + ''' || true
   git push origin ''' + MIDSTM_BRANCH + ''' || true
   NEW_SHA_MID=\$(git rev-parse HEAD) # echo ${NEW_SHA_MID:0:8}
   if [[ "${OLD_SHA_MID}" != "${NEW_SHA_MID}" ]]; then hasChanged=1; fi
