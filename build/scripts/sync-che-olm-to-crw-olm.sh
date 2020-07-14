@@ -34,8 +34,8 @@ while [[ "$#" -gt 0 ]]; do
 	# previous version to set in CSV
 	'-p') CRW_VERSION_PREV="$1"; shift 1;;
 	# paths to use for input and ouput
-	'-s') SOURCEDIR="$1"; SOURCEDIR="${SOURCEDIR%/}"; shit 1;;
-	'-t') TARGETDIR="$2"; TARGETDIR="${TARGETDIR%/}"; shit 1;;
+	'-s') SOURCEDIR="$1"; SOURCEDIR="${SOURCEDIR%/}"; shift 1;;
+	'-t') TARGETDIR="$2"; TARGETDIR="${TARGETDIR%/}"; shift 1;;
 	'--help'|'-h') usage; exit;;
 	# optional tag overrides
 	'--crw-tag') CRW_TAG="$1"; shift 1;;
