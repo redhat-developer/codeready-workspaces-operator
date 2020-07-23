@@ -20,5 +20,6 @@ RUN /build/scripts/swap_images.sh /manifests
 
 FROM scratch
 COPY --from=builder /manifests /manifests
+COPY ./metadata/annotations.yaml /metadata/annotations.yaml
 
 # append Brew metadata here (it will be appended via https://github.com/redhat-developer/codeready-workspaces-operator/blob/master/operator-metadata.Jenkinsfile)

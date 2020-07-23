@@ -238,7 +238,15 @@ LABEL summary="$SUMMARY" \\\r
       license="EPLv2" \\\r
       maintainer="Nick Boldt <nboldt@redhat.com>" \\\r
       io.openshift.expose-services="" \\\r
-      com.redhat.delivery.appregistry="true" \\\r
+      operators.operatorframework.io.bundle.mediatype.v1=registry+v1 \\\r
+      operators.operatorframework.io.bundle.manifests.v1=manifests/ \\\r
+      operators.operatorframework.io.bundle.metadata.v1=metadata/ \\\r
+      operators.operatorframework.io.bundle.package.v1=codeready-workspaces \\\r
+      operators.operatorframework.io.bundle.channels.v1=latest \\\r
+      operators.operatorframework.io.bundle.channel.default.v1=latest \\\r
+      com.redhat.delivery.operator.bundle="true" \\\r
+      com.redhat.openshift.versions="v4.5" \\\r
+      com.redhat.delivery.backport=true \\\r
       usage="" \r'
 
 echo -e "$METADATA" >> ${WORKSPACE}/targetdwn/Dockerfile
