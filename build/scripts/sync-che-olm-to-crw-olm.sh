@@ -56,27 +56,23 @@ pushd "${SOURCEDIR}" >/dev/null || exit
 for d in addDigests.sh buildDigestMap.sh digestExcludeList images.sh olm.sh; do rsync -zrltq "${SOURCEDIR}/olm/${d}" "${SCRIPTS_DIR}"; done
 # Fix "help" messages for digest scripts
 sed -r \
-	-e 's|("Example:).*"|\1 $0 -w $(pwd) -s controller-manifests/v'${CSV_VERSION}' -r \\".*.csv.yaml\\" -t '${CRW_TAG}'"|g' \
+	-e 's|("Example:).*"|\1 $0 -w $(pwd) -s manifests -r \\".*.csv.yaml\\" -t '${CRW_TAG}'"|g' \
 	-i "${SCRIPTS_DIR}/addDigests.sh"
 sed -r \
-	-e 's|("Example:).*"|\1 $0 -w $(pwd) -c $(pwd)/controller-manifests/v'${CSV_VERSION}'/codeready-workspaces.csv.yaml -t '${CRW_TAG}'"|g' \
+	-e 's|("Example:).*"|\1 $0 -w $(pwd) -c $(pwd)/manifests/codeready-workspaces.csv.yaml -t '${CRW_TAG}'"|g' \
 	-i "${SCRIPTS_DIR}/buildDigestMap.sh"
 
 # simple copy
-# TODO when we switch to OCP 4.6 format, remove updates to controller-manifests/v${CSV_VERSION} folder
-mkdir -p ${TARGETDIR}/deploy/crds ${TARGETDIR}/manifests/ ${TARGETDIR}/controller-manifests/v${CSV_VERSION}/
+mkdir -p ${TARGETDIR}/deploy/crds ${TARGETDIR}/manifests/
 for CRDFILE in \
-	"${TARGETDIR}/controller-manifests/v${CSV_VERSION}/codeready-workspaces.crd.yaml" \
 	"${TARGETDIR}/manifests/codeready-workspaces.crd.yaml" \
 	"${TARGETDIR}/deploy/crds/org_v1_che_crd.yaml"; do
 	cp "${SOURCEDIR}"/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/"${CHE_VERSION}"/*crd.yaml "${CRDFILE}"
 done
 
 ICON="$(cat "${SCRIPTS_DIR}/sync-che-olm-to-crw-olm.icon.txt")"
-# TODO: when we switch to OCP 4.6 format, use only CSVFILE="${TARGETDIR}/manifests/codeready-workspaces.csv.yaml"
 for CSVFILE in \
-	"${TARGETDIR}/controller-manifests/v${CSV_VERSION}/codeready-workspaces.csv.yaml" \
-	"${TARGETDIR}/manifests/codeready-workspaces.csv.yaml"; do
+	${TARGETDIR}/manifests/codeready-workspaces.csv.yaml; do
 	cp olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/"${CHE_VERSION}"/*clusterserviceversion.yaml "${CSVFILE}"
 	# transform resulting file
 	NOW="$(date -u +%FT%T+00:00)"
@@ -171,19 +167,6 @@ for CSVFILE in \
 		done
 	fi
 done
-
-# generate package.yaml
-echo "# Must include all channels, even dead ones, so that CVP tests pass. 
-# Expectation is that once an operator is published, it will be carried along here forever.
-# (At least until we move to the OCP 4.4/4.5 approach)
-packageName: codeready-workspaces
-channels:
-- name: latest
-  currentCSV: crwoperator.v${CSV_VERSION}
-- name: previous
-  currentCSV: crwoperator.v1.2.2
-defaultChannel: latest
-" > "${TARGETDIR}/controller-manifests/codeready-workspaces.package.yaml"
 
 popd >/dev/null || exit
 

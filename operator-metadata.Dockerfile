@@ -14,7 +14,7 @@ FROM registry.access.redhat.com/ubi8-minimal:8.2-345 as builder
 RUN microdnf install -y findutils
 
 # not applicable to Che, only needed for CRW
-ADD controller-manifests /manifests
+ADD manifests /manifests
 ADD build /build
 RUN /build/scripts/swap_images.sh /manifests
 

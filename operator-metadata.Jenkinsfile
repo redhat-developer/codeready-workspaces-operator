@@ -143,20 +143,19 @@ done
 CSV_NAME="codeready-workspaces"
 CSV_VERSION="$(curl -sSLo - https://raw.githubusercontent.com/redhat-developer/codeready-workspaces/master/pom.xml | grep "<version>" | head -2 | tail -1 | \
   sed -r -e "s#.*<version>(.+)</version>.*#\\1#" -e "s#\\.GA##")" # 2.3.0 but not 2.3.0.GA
-CSV_FILE="\$( { find ${WORKSPACE}/targetdwn/controller-manifests/*${CSV_VERSION}/ -name "${CSV_NAME}.csv.yaml" | tail -1; } || true)"; # echo "[INFO] CSV = ${CSV_FILE}"
+CSV_FILE="\$( { find ${WORKSPACE}/targetdwn/manifests/ -name "${CSV_NAME}.csv.yaml" | tail -1; } || true)"; # echo "[INFO] CSV = ${CSV_FILE}"
 if [[ ! ${CSV_FILE} ]]; then 
   # CRW-878 generate CSV and update CRD from upstream
   cd ${WORKSPACE}/targetmid/build/scripts
   ./sync-che-olm-to-crw-olm.sh -v ${CSV_VERSION} -p ''' + CSV_VERSION_PREV + ''' -s ${WORKSPACE}/sources -t ${WORKSPACE}/targetmid --che ''' + CSV_VERSION_CHE + '''
   cd ${WORKSPACE}/targetmid/
-  # TODO when we move to bundle format, remove controller-manifests
   # if anything has changed other than the createdAt date, then we commit this
   if [[ $(git diff | grep -v createdAt | egrep "^(-|\\+) ") ]]; then
-    git add controller-manifests/ manifests/ build/scripts/
-    git commit -s -m "[csv] Add CSV ${CSV_VERSION}" controller-manifests/ manifests/ build/scripts/
+    git add manifests/ build/scripts/
+    git commit -s -m "[csv] Add CSV ${CSV_VERSION}" manifests/ build/scripts/
     git push origin ''' + MIDSTM_BRANCH + '''
   else # no need to push this so revert
-    git checkout controller-manifests/ manifests/ build/scripts/
+    git checkout manifests/ build/scripts/
   fi
 fi
 
@@ -166,7 +165,7 @@ cd ..
 '''
               }
 
-          def SYNC_FILES_MID2DWN = "controller-manifests manifests metadata build" // folders in mid/dwn
+          def SYNC_FILES_MID2DWN = "manifests metadata build" // folders in mid/dwn
 
           OLD_SHA_DWN = sh(script: BOOTSTRAP + '''
           cd ${WORKSPACE}/targetdwn; git rev-parse HEAD
@@ -202,8 +201,7 @@ sed -i ${WORKSPACE}/targetdwn/Dockerfile \
 CSV_NAME="codeready-workspaces"
 CSV_VERSION="$(curl -sSLo - https://raw.githubusercontent.com/redhat-developer/codeready-workspaces/master/pom.xml | grep "<version>" | head -2 | tail -1 | \
   sed -r -e "s#.*<version>(.+)</version>.*#\\1#" -e "s#\\.GA##")" # 2.3.0 but not 2.3.0.GA
-# TODO CRW 2.3 / OCP 4.6 switch to use manifests folder
-CSV_FILE="\$(find ${WORKSPACE}/targetdwn/controller-manifests/*${CSV_VERSION}/ -name "${CSV_NAME}.csv.yaml" | tail -1)"; # echo "[INFO] CSV = ${CSV_FILE}"
+CSV_FILE="\$(find ${WORKSPACE}/targetdwn/manifests/ -name "${CSV_NAME}.csv.yaml" | tail -1)"; # echo "[INFO] CSV = ${CSV_FILE}"
 sed -r \
     `# for plugin & devfile registries, use internal Brew versions` \
     -e "s|registry.redhat.io/codeready-workspaces/(pluginregistry-rhel8:.+)|registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-\\1|g" \
@@ -214,10 +212,9 @@ sed -r \
 
 # 2. generate digests
 pushd ${WORKSPACE}/targetdwn >/dev/null
-# TODO CRW 2.3 / OCP 4.6 switch to use manifests folder
 # TODO digest scripts do not work anymore - https://github.com/eclipse/che/issues/17432
 # TODO make sure generated CSV is not mangled by yq
-# ./build/scripts/addDigests.sh -s controller-manifests/v${CSV_VERSION} -r ".*.csv.yaml" -t ${CRW_VERSION}
+# ./build/scripts/addDigests.sh -s manifests -r ".*.csv.yaml" -t ${CRW_VERSION}
 popd >/dev/null
 
 # 3. switch back to use RHCC container names

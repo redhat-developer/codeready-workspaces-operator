@@ -29,7 +29,7 @@ command -v yq >/dev/null 2>&1 || { echo "yq is not installed. Aborting."; exit 1
 
 usage () {
 	echo "Usage:   $0 [-w WORKDIR] [-s SOURCE_PATH] -r [CSV_FILE_PATH_REGEXP] -t [IMAGE_TAG] "
-	echo "Example: $0 -w $(pwd) -s controller-manifests/v2.3.0 -r \".*.csv.yaml\" -t 2.3"
+	echo "Example: $0 -w $(pwd) -s manifests -r \".*.csv.yaml\" -t 2.3"
 }
 
 if [[ $# -lt 1 ]]; then usage; exit; fi

@@ -29,7 +29,7 @@ command -v skopeo > /dev/null 2>&1 || { echo "skopeo is not installed. Aborting.
 
 usage () {
 	echo "Usage:   $0 [-w WORKDIR] -c [/path/to/csv.yaml] -t [IMAGE_TAG]"
-	echo "Example: $0 -w $(pwd) -c $(pwd)/controller-manifests/v2.3.0/codeready-workspaces.csv.yaml -t 2.3"
+	echo "Example: $0 -w $(pwd) -c $(pwd)/manifests/codeready-workspaces.csv.yaml -t 2.3"
 }
 
 if [[ $# -lt 1 ]]; then usage; exit; fi

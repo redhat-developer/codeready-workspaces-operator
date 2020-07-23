@@ -18,7 +18,7 @@ NOTE: The job can be configured to sync from any upstream che-operator branch, e
 
 ### Metadata container
 
-* Metadata for the CRW operator is contained in this repo. See link:https://github.com/redhat-developer/codeready-workspaces-operator/tree/master/controller-manifests[controller-manifests] and link:https://github.com/redhat-developer/codeready-workspaces-operator/tree/master/deploy[deploy] folders, and this link:https://github.com/redhat-developer/codeready-workspaces-operator/blob/master/operator-metadata.Dockerfile[operator-metadata.Dockerfile].
+* Metadata for the CRW operator is contained in this repo. See link:https://github.com/redhat-developer/codeready-workspaces-operator/tree/master/manifests[manifests], link:https://github.com/redhat-developer/codeready-workspaces-operator/tree/master/metadata[metadata] and link:https://github.com/redhat-developer/codeready-workspaces-operator/tree/master/deploy[deploy] folders, and this link:https://github.com/redhat-developer/codeready-workspaces-operator/blob/master/operator-metadata.Dockerfile[operator-metadata.Dockerfile].
 
 * The metadata is then synced to the link:http://pkgs.devel.redhat.com/cgit/containers/codeready-workspaces-operator-metadata/?h=crw-2.2-rhel-8[downstream repo] via this link:https://codeready-workspaces-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/view/CRW_CI/view/Releng/job/crw-operator-metadata_sync-github-to-pkgs.devel-pipeline/[job] (link:https://github.com/redhat-developer/codeready-workspaces-operator/blob/master/operator-metadata.Jenkinsfile[operator-metadata.Jenkinsfile]).
 
