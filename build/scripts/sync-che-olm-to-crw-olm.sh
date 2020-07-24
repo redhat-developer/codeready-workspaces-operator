@@ -159,8 +159,12 @@ for CSVFILE in \
 		 	'.spec.install.spec.deployments[].spec.template.spec.containers[].env = [.spec.install.spec.deployments[].spec.template.spec.containers[].env[] | if (.name == $updateName) then (.value = $updateVal) else . end]')" && \
  		echo "${changed}" > "${CSVFILE}"
 	done
+
+	# add more RELATED_IMAGE_ fields for the images referenced by the registries
+	${SCRIPTS_DIR}/insert-related-images-to-csv.sh -v ${CSV_VERSION} -t ${TARGETDIR}
+
 	if [[ $(diff -q -u "${SOURCEDIR}/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/${CHE_VERSION}"/*clusterserviceversion.yaml "${CSVFILE}") ]]; then
-		echo "Converted (yq #2) ${CSVFILE}:"
+		echo "Converted + inserted (yq #2) ${CSVFILE}:"
 		for updateName in "${!operator_replacements[@]}"; do 
 			echo -n " * $updateName: "
 			cat  "${CSVFILE}" | yq --arg updateName "${updateName}" '.spec.install.spec.deployments[].spec.template.spec.containers[].env? | .[] | select(.name == $updateName) | .value' 2>/dev/null
