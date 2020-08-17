@@ -223,9 +223,11 @@ pushd ${WORKSPACE}/targetdwn >/dev/null
 popd >/dev/null
 
 # 3. revert to OSBS image refs, since digest pinning will automatically switch them to RHCC values
-sed -r \
-    -e "s#(quay.io/crw/|registry.redhat.io/codeready-workspaces/)#registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-#g" \
-    -i "${CSV_FILE}"
+# TODO CRW-1162 re-enable when using OSBS digest pinning, not homegrown variant
+#sed -r \
+#    -e "s#(quay.io/crw/|registry.redhat.io/codeready-workspaces/)#registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-#g" \
+#    -i "${CSV_FILE}"
+
 # TODO CRW-1044 switch to operators.operatorframework.io.bundle LABELs
 METADATA='ENV SUMMARY="Red Hat CodeReady Workspaces ''' + QUAY_PROJECT + ''' container" \\\r
     DESCRIPTION="Red Hat CodeReady Workspaces ''' + QUAY_PROJECT + ''' container" \\\r
