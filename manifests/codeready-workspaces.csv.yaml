@@ -283,11 +283,11 @@ spec:
                       - name: CHE_VERSION
                         value: 2.3.0
                       - name: RELATED_IMAGE_che_server
-                        value: registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-server-rhel8:2.3
+                        value: registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-server-rhel8:2.4
                       - name: RELATED_IMAGE_plugin_registry
-                        value: registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-pluginregistry-rhel8:2.3
+                        value: registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-pluginregistry-rhel8:2.4
                       - name: RELATED_IMAGE_devfile_registry
-                        value: registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-devfileregistry-rhel8:2.3
+                        value: registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-devfileregistry-rhel8:2.4
                       - name: RELATED_IMAGE_pvc_jobs
                         value: registry.redhat.io/ubi8-minimal:8.2
                       - name: RELATED_IMAGE_postgres
@@ -295,11 +295,11 @@ spec:
                       - name: RELATED_IMAGE_keycloak
                         value: registry.redhat.io/rh-sso-7/sso74-openshift-rhel8:7.4
                       - name: RELATED_IMAGE_che_workspace_plugin_broker_metadata
-                        value: registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-pluginbroker-metadata-rhel8:2.3
+                        value: registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-pluginbroker-metadata-rhel8:2.4
                       - name: RELATED_IMAGE_che_workspace_plugin_broker_artifacts
-                        value: registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-pluginbroker-artifacts-rhel8:2.3
+                        value: registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-pluginbroker-artifacts-rhel8:2.4
                       - name: RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image
-                        value: registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-jwtproxy-rhel8:2.3
+                        value: registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-jwtproxy-rhel8:2.4
                       - name: CHE_FLAVOR
                         value: codeready
                       - name: CONSOLE_LINK_NAME
@@ -319,34 +319,34 @@ spec:
                       - name: CHE_SERVER_TRUST_STORE_CONFIGMAP_NAME
                         value: ca-certs
                       - name: RELATED_IMAGE_codeready_workspaces_machineexec
-                        value: registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-machineexec-rhel8:2.3
+                        value: registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-machineexec-rhel8:2.4
                       - name: RELATED_IMAGE_codeready_workspaces_plugin_java11
-                        value: registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-plugin-java11-rhel8:2.3
+                        value: registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-plugin-java11-rhel8:2.4
                       - name: RELATED_IMAGE_codeready_workspaces_plugin_java8
-                        value: registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-plugin-java8-rhel8:2.3
+                        value: registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-plugin-java8-rhel8:2.4
                       - name: RELATED_IMAGE_codeready_workspaces_plugin_kubernetes
-                        value: registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-plugin-kubernetes-rhel8:2.3
+                        value: registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-plugin-kubernetes-rhel8:2.4
                       - name: RELATED_IMAGE_codeready_workspaces_plugin_openshift
-                        value: registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-plugin-openshift-rhel8:2.3
+                        value: registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-plugin-openshift-rhel8:2.4
                       - name: RELATED_IMAGE_codeready_workspaces_stacks_cpp
-                        value: registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-stacks-cpp-rhel8:2.3
+                        value: registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-stacks-cpp-rhel8:2.4
                       - name: RELATED_IMAGE_codeready_workspaces_stacks_dotnet
-                        value: registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-stacks-dotnet-rhel8:2.3
+                        value: registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-stacks-dotnet-rhel8:2.4
                       - name: RELATED_IMAGE_codeready_workspaces_stacks_golang
-                        value: registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-stacks-golang-rhel8:2.3
+                        value: registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-stacks-golang-rhel8:2.4
                       - name: RELATED_IMAGE_codeready_workspaces_stacks_php
-                        value: registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-stacks-php-rhel8:2.3
+                        value: registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-stacks-php-rhel8:2.4
                       - name: RELATED_IMAGE_codeready_workspaces_theia_endpoint
-                        value: registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-theia-endpoint-rhel8:2.3
+                        value: registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-theia-endpoint-rhel8:2.4
                       - name: RELATED_IMAGE_codeready_workspaces_theia
-                        value: registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-theia-rhel8:2.3
+                        value: registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-theia-rhel8:2.4
                       - name: RELATED_IMAGE_jboss_eap_7_eap73_openjdk8_openshift_rhel7
                         value: registry.redhat.io/jboss-eap-7/eap73-openjdk8-openshift-rhel7:7.3.1
                       - name: RELATED_IMAGE_jboss_eap_7_eap_xp1_openjdk11_openshift
                         value: registry.redhat.io/jboss-eap-7/eap-xp1-openjdk11-openshift-rhel8:1.0-3
                       - name: RELATED_IMAGE_rhscl_mongodb_36_rhel7
                         value: registry.redhat.io/rhscl/mongodb-36-rhel7:1-50
-                    image: registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-operator:2.3
+                    image: registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-operator:2.4
                     imagePullPolicy: Always
                     name: codeready-operator
                     ports:
