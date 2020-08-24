@@ -296,6 +296,8 @@ spec:
                         value: registry.redhat.io/rh-sso-7/sso74-openshift-rhel8:7.4
                       - name: RELATED_IMAGE_keycloak_s390x
                         value: registry.redhat.io/rh-sso-7/sso74-openj9-openshift-rhel8:7.4
+                      - name: RELATED_IMAGE_keycloak_ppc64le
+                        value: registry-proxy.engineering.redhat.com/rh-osbs/rh-sso-7-sso74-openj9-openshift-rhel8:7.4
                       - name: RELATED_IMAGE_che_workspace_plugin_broker_metadata
                         value: registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-pluginbroker-metadata-rhel8:2.4
                       - name: RELATED_IMAGE_che_workspace_plugin_broker_artifacts
@@ -348,6 +350,8 @@ spec:
                         value: registry.redhat.io/jboss-eap-7/eap-xp1-openjdk11-openshift-rhel8:1.0-3
                       - name: RELATED_IMAGE_jboss_eap_7_eap_xp1_openjdk11_openshift_s390x
                         value: registry.redhat.io/jboss-eap-7/eap-xp1-openj9-11-openshift-rhel8:1.0
+                      - name: RELATED_IMAGE_jboss_eap_7_eap_xp1_openjdk11_openshift_ppc64le
+                        value: registry-proxy.engineering.redhat.com/rh-osbs/jboss-eap-7-eap-xp1-openj9-11-openshift-rhel8:1.0.1
                       - name: RELATED_IMAGE_rhscl_mongodb_36_rhel7
                         value: registry.redhat.io/rhscl/mongodb-36-rhel7:1-50
                     image: registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-operator:2.4
