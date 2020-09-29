@@ -51,7 +51,7 @@ spec:
             - name: RELATED_IMAGE_devfile_registry
               value: registry.redhat.io/codeready-workspaces/devfileregistry-rhel8:2.5
             - name: RELATED_IMAGE_pvc_jobs
-              value: registry.access.redhat.com/ubi8-minimal:8.2
+              value: registry.redhat.io/ubi8/ubi-minimal:8.2
             - name: RELATED_IMAGE_postgres
               value: registry.redhat.io/rhel8/postgresql-96:1
             - name: RELATED_IMAGE_keycloak

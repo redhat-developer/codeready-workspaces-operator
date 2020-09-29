@@ -204,7 +204,7 @@ done
             "registry.redhat.io/codeready-workspaces/server-rhel8",
             "registry.redhat.io/codeready-workspaces/pluginregistry-rhel8",
             "registry.redhat.io/codeready-workspaces/devfileregistry-rhel8",
-            "registry.access.redhat.com/ubi8-minimal",
+            "registry.redhat.io/ubi8/ubi-minimal",
             "registry.redhat.io/rhel8/postgresql-96",
             "registry.redhat.io/rh-sso-7/sso74-openshift-rhel8",
             "registry.redhat.io/codeready-workspaces/pluginbroker-metadata-rhel8",

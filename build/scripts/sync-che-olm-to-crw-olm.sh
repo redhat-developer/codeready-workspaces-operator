@@ -21,6 +21,10 @@ CRW_VERSION=${CSV_VERSION%.*} # tag 2.y
 CSV_VERSION_PREV=2.x.0
 MIDSTM_BRANCH=crw-2.5-rhel-8
 
+SSO_TAG=7.4
+UBI_TAG=8.2
+POSTGRES_TAG=1
+
 command -v yq >/dev/null 2>&1 || { echo "yq is not installed. Aborting."; exit 1; }
 command -v skopeo >/dev/null 2>&1 || { echo "skopeo is not installed. Aborting."; exit 1; }
 checkVersion() {
@@ -39,6 +43,11 @@ usage () {
 	echo "Example: ${0##*/} -v ${CSV_VERSION} -p ${CSV_VERSION_PREV} -s ${HOME}/che-operator -t `pwd` --che 9.9.9-nightly.1598450052"
 	echo "Example: ${0##*/} -v ${CSV_VERSION} -p ${CSV_VERSION_PREV} -s ${HOME}/che-operator -t `pwd` --crw-branch ${MIDSTM_BRANCH}"
 	echo "Example: ${0##*/} -v ${CSV_VERSION} -p ${CSV_VERSION_PREV} -s ${HOME}/che-operator -t `pwd` [if no che.version, use value from codeready-workspaces/crw-branch/pom.xml]"
+	echo "Options:
+	--sso-tag 7.4
+	--ubi-tag 8.2
+	--postgres-tag 1
+	"
 	exit
 }
 
@@ -58,6 +67,9 @@ while [[ "$#" -gt 0 ]]; do
 	'--help'|'-h') usage;;
 	# optional tag overrides
 	'--crw-tag') CRW_VERSION="$2"; shift 1;;
+	'--sso-tag') SSO_TAG="$2"; shift 1;;
+	'--ubi-tag') UBI_TAG="$2"; shift 1;;
+	'--postgres-tag') POSTGRES_TAG="$2"; shift 1;;
   esac
   shift 1
 done
@@ -70,6 +82,10 @@ if [[ "${CSV_VERSION_PREV}" == "2.x.0" ]]; then usage; fi
 if [[ ! ${CHE_VERSION} ]]; then
 	CHE_VERSION="$(curl -sSLo - https://raw.githubusercontent.com/redhat-developer/codeready-workspaces/${MIDSTM_BRANCH}/pom.xml | grep -E "<che.version>" | sed -r -e "s#.+<che.version>(.+)</che.version>#\1#" || exit 1)"
 fi
+
+UBI_IMAGE="registry.redhat.io/ubi8/ubi-minimal:${UBI_TAG}"
+POSTGRES_IMAGE="registry.redhat.io/rhel8/postgresql-96:${POSTGRES_TAG}"
+SSO_IMAGE="registry.redhat.io/rh-sso-7/sso74-openshift-rhel8:${SSO_TAG}" # and registry.redhat.io/rh-sso-7/sso74-openj9-openshift-rhel8 too
 
 pushd "${SOURCEDIR}" >/dev/null || exit
 
@@ -146,9 +162,14 @@ for CSVFILE in \
 		-e "s|quay.io/eclipse/che-plugin-artifacts-broker:.+|registry.redhat.io/codeready-workspaces/pluginbroker-artifacts-rhel8:${CRW_VERSION}|" \
 		-e "s|quay.io/eclipse/che-jwtproxy:.+|registry.redhat.io/codeready-workspaces/jwtproxy-rhel8:${CRW_VERSION}|" \
 		\
-		-e "s|registry.access.redhat.com/ubi8-minimal:.+|registry.access.redhat.com/ubi8-minimal:8.2|" \
-		-e "s|centos/postgresql-96-centos7:9.6|registry.redhat.io/rhel8/postgresql-96:1|" \
-		-e "s|quay.io/eclipse/che-keycloak:.+|registry.redhat.io/rh-sso-7/sso74-openshift-rhel8:7.4|" \
+		`# CRW-1254 use ubi8/ubi-minimal for airgap mirroring` \
+		-e "s|/ubi8-minimal|/ubi8/ubi-minimal|g" \
+		-e "s|registry.redhat.io/ubi8/ubi-minimal:.+|${UBI_IMAGE}|" \
+		-e "s|registry.access.redhat.com/ubi8/ubi-minimal:.+|${UBI_IMAGE}|g" \
+		\
+		-e "s|centos/postgresql-96-centos7:9.6|${POSTGRES_IMAGE}|" \
+		-e "s|quay.io/eclipse/che-keycloak:.+|${SSO_IMAGE}|" \
+		\
 		-e "s|quay.io/eclipse/codeready-operator:nightly|registry.redhat.io/codeready-workspaces/crw-2-rhel8-operator:${CRW_VERSION}|" \
 		-e "s|quay.io/eclipse/codeready-operator:${CHE_VERSION}|registry.redhat.io/codeready-workspaces/crw-2-rhel8-operator:${CRW_VERSION}|" \
 		-e 's|IMAGE_default_|RELATED_IMAGE_|' \

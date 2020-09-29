@@ -361,7 +361,7 @@ spec:
                       - name: RELATED_IMAGE_postgres
                         value: registry.redhat.io/rhel8/postgresql-96@sha256:fdc2398a25530547354714f2538c691d91b700e0cedef5361a3e7d96ddfd4e11
                       - name: RELATED_IMAGE_pvc_jobs
-                        value: registry.redhat.io/ubi8-minimal@sha256:5cfbaf45ca96806917830c183e9f37df2e913b187aadb32e89fd83fa455ebaa6
+                        value: registry.redhat.io/ubi8/ubi-minimal@sha256:5cfbaf45ca96806917830c183e9f37df2e913b187aadb32e89fd83fa455ebaa6
                       - name: RELATED_IMAGE_rhscl_mongodb_36_rhel7
                         value: registry.redhat.io/rhscl/mongodb-36-rhel7@sha256:9f799d356d7d2e442bde9d401b720600fd9059a3d8eefea6f3b2ffa721c0dc73
                       - name: WATCH_NAMESPACE
@@ -567,6 +567,6 @@ spec:
     - name: rh-sso-7-sso74-openshift-rhel8
       image: registry.redhat.io/rh-sso-7/sso74-openshift-rhel8@sha256:ec6801343eb1ca085154d8d7481552f2e9debc414125413d25e42216aa5922af
       # tag: registry.redhat.io/rh-sso-7/sso74-openshift-rhel8:7.4
-    - name: registry.redhat.io/ubi8-minimal@sha256:5cfbaf45ca96806917830c183e9f37df2e913b187aadb32e89fd83fa455ebaa6
-      image: registry.redhat.io/ubi8-minimal@sha256:5cfbaf45ca96806917830c183e9f37df2e913b187aadb32e89fd83fa455ebaa6
-      # tag: registry.redhat.io/ubi8-minimal:8.2
+    - name: registry.redhat.io/ubi8/ubi-minimal@sha256:5cfbaf45ca96806917830c183e9f37df2e913b187aadb32e89fd83fa455ebaa6
+      image: registry.redhat.io/ubi8/ubi-minimal@sha256:5cfbaf45ca96806917830c183e9f37df2e913b187aadb32e89fd83fa455ebaa6
+      # tag: registry.redhat.io/ubi8/ubi-minimal:8.2

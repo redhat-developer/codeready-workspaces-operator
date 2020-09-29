@@ -94,7 +94,9 @@ done
 
 # replace external crw refs with internal ones
 sed -r -i $CSVFILE \
-  -e "s@registry.access.redhat.com/ubi8-minimal@registry.redhat.io/ubi8-minimal@g"
+  -e "s@registry.access.redhat.com/ubi8-minimal@registry.redhat.io/ubi8-minimal@g" \
+  `# CRW-1254 use ubi8/ubi-minimal for airgap mirroring` \
+  -e "s@/ubi8-minimal@/ubi8/ubi-minimal@g"
   # CRW-1237 temporarily disable switching to registry-proxy URLs - might have to re-enable these if osbs application broken
   # -e "s@registry.redhat.io/codeready-workspaces/@registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-@g#" \
   # -e "s@registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-crw-2-rhel8-operator@registry-proxy.engineering.redhat.com/rh-osbs/codeready-workspaces-operator@g" \
