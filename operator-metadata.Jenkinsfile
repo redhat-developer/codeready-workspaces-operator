@@ -18,142 +18,37 @@ def PUSH_TO_QUAY = "true"
 def QUAY_PROJECT = "operator-metadata" // also used for the Brew dockerfile params
 def OLD_SHA_DWN=""
 
-@Field String CSV_VERSION = ""
-def String getCSVVersion(String MIDSTM_BRANCH) {
-  if (CSV_VERSION.equals("")) {
-    // DO NOT use csv file to compute version since this job can change that value; instead, read pom.xml and compute version from there
-    CSV_VERSION = sh(script: '''#!/bin/bash -xe
-    curl -sSLo - https://raw.githubusercontent.com/redhat-developer/codeready-workspaces/''' + MIDSTM_BRANCH + '''/pom.xml | grep "<version>" | head -2 | tail -1 | \
-    sed -r -e "s#.*<version>(.+)</version>.*#\\1#" -e "s#\\.GA##"
-    ''', returnStdout: true).trim()
-  }
-  return CSV_VERSION
-}
-
-@Field String CRW_VERSION_F = ""
-def String getCrwVersion(String MIDSTM_BRANCH) {
-  if (CRW_VERSION_F.equals("")) {
-    CRW_VERSION_F = sh(script: '''#!/bin/bash -xe
-    curl -sSLo- https://raw.githubusercontent.com/redhat-developer/codeready-workspaces/''' + MIDSTM_BRANCH + '''/dependencies/VERSION''', returnStdout: true).trim()
-  }
-  return CRW_VERSION_F
-}
-
-def installSkopeo(String CRW_VERSION)
-{
-sh '''#!/bin/bash -xe
-pushd /tmp >/dev/null
-# remove any older versions
-sudo yum remove -y skopeo || true
-# install from @kcrane build
-if [[ ! -x /usr/local/bin/skopeo ]]; then
-    sudo curl -sSLO "https://codeready-workspaces-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/job/crw-deprecated_''' + CRW_VERSION + '''/lastSuccessfulBuild/artifact/codeready-workspaces-deprecated/skopeo/target/skopeo-$(uname -m).tar.gz"
-fi
-if [[ -f /tmp/skopeo-$(uname -m).tar.gz ]]; then 
-    sudo tar xzf /tmp/skopeo-$(uname -m).tar.gz --overwrite -C /usr/local/bin/
-    sudo chmod 755 /usr/local/bin/skopeo
-    sudo rm -f /tmp/skopeo-$(uname -m).tar.gz
-fi
-popd >/dev/null
-skopeo --version
-'''
-}
-
 def buildNode = "rhel7-releng" // slave label
 timeout(120) {
 	node("${buildNode}"){ stage "Sync repos"
+      sh('curl -sSLO https://raw.githubusercontent.com/redhat-developer/codeready-workspaces/'+ DWNSTM_BRANCH + '/product/util.groovy')
+      def util = load "${WORKSPACE}/util.groovy"
       cleanWs()
-      CRW_VERSION = getCrwVersion(MIDSTM_BRANCH)
+      CRW_VERSION = util.getCrwVersion(MIDSTM_BRANCH)
       println "CRW_VERSION = '" + CRW_VERSION + "'"
-      installSkopeo(CRW_VERSION)
-      CSV_VERSION = getCSVVersion(MIDSTM_BRANCH)
+      util.installSkopeo(CRW_VERSION)
+      until.installYq()
+      CSV_VERSION = util.getCSVVersion(MIDSTM_BRANCH)
       println "CSV_VERSION = '" + CSV_VERSION + "'"
       withCredentials([string(credentialsId:'devstudio-release.token', variable: 'GITHUB_TOKEN'), 
         file(credentialsId: 'crw-build.keytab', variable: 'CRW_KEYTAB')]) {
-          checkout([$class: 'GitSCM',
-            branches: [[name: "${SOURCE_BRANCH}"]],
-            doGenerateSubmoduleConfigurations: false,
-            credentialsId: 'devstudio-release',
-            poll: true,
-            extensions: [
-              [$class: 'RelativeTargetDirectory', relativeTargetDir: "sources"],
-            ],
-            submoduleCfg: [],
-            userRemoteConfigs: [[url: "https://github.com/${SOURCE_REPO}.git"]]])
-          checkout([$class: 'GitSCM',
-            branches: [[name: "${MIDSTM_BRANCH}"]],
-            doGenerateSubmoduleConfigurations: false,
-            credentialsId: 'devstudio-release',
-            poll: true,
-            extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: "targetmid"]],
-            submoduleCfg: [],
-            userRemoteConfigs: [[url: "https://github.com/${MIDSTM_REPO}.git"],
-                [credentialsId:'devstudio-release']
-                ]])
+          util.bootstrap(CRW_KEYTAB)
 
+          util.cloneRepo("https://github.com/${SOURCE_REPO}.git", "${WORKSPACE}/sources", SOURCE_BRANCH)
+          SOURCE_SHA = util.getLastCommitSHA("${WORKSPACE}/sources")
+          println "Got SOURCE_SHA in sources folder: " + SOURCE_SHA
 
+          util.cloneRepo("https://github.com/${MIDSTM_REPO}.git", "${WORKSPACE}/targetmid", MIDSTM_BRANCH)
+          MIDSTM_SHA = util.getLastCommitSHA("${WORKSPACE}/targetmid")
+          println "Got MIDSTM_SHA in targetmid folder: " + MIDSTM_SHA
 
-            sh "sudo /usr/bin/python3 -m pip install --upgrade pip; sudo /usr/bin/python3 -m pip install yq jsonschema"
-            def BOOTSTRAP = '''#!/bin/bash -xe
-
-# bootstrapping: if keytab is lost, upload to
-# https://codeready-workspaces-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/credentials/store/system/domain/_/
-# then set Use secret text above and set Bindings > Variable (path to the file) as ''' + CRW_KEYTAB + '''
-chmod 700 ''' + CRW_KEYTAB + ''' && chown ''' + USER + ''' ''' + CRW_KEYTAB + '''
-# create .k5login file
-echo "crw-build/codeready-workspaces-jenkins.rhev-ci-vms.eng.rdu2.redhat.com@REDHAT.COM" > ~/.k5login
-chmod 644 ~/.k5login && chown ''' + USER + ''' ~/.k5login
- echo "pkgs.devel.redhat.com,10.16.101.66 ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAplqWKs26qsoaTxvWn3DFcdbiBxqRLhFngGiMYhbudnAj4li9/VwAJqLm1M6YfjOoJrj9dlmuXhNzkSzvyoQODaRgsjCG5FaRjuN8CSM/y+glgCYsWX1HFZSnAasLDuW0ifNLPR2RBkmWx61QKq+TxFDjASBbBywtupJcCsA5ktkjLILS+1eWndPJeSUJiOtzhoN8KIigkYveHSetnxauxv1abqwQTk5PmxRgRt20kZEFSRqZOJUlcl85sZYzNC/G7mneptJtHlcNrPgImuOdus5CW+7W49Z/1xqqWI/iRjwipgEMGusPMlSzdxDX4JzIx6R53pDpAwSAQVGDz4F9eQ==
-" >> ~/.ssh/known_hosts
-
-ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
-
-# see https://mojo.redhat.com/docs/DOC-1071739
-if [[ -f ~/.ssh/config ]]; then mv -f ~/.ssh/config{,.BAK}; fi
-echo "
-GSSAPIAuthentication yes
-GSSAPIDelegateCredentials yes
-
-Host pkgs.devel.redhat.com
-User crw-build/codeready-workspaces-jenkins.rhev-ci-vms.eng.rdu2.redhat.com@REDHAT.COM
-" > ~/.ssh/config
-chmod 600 ~/.ssh/config
-
-# initialize kerberos
-export KRB5CCNAME=/var/tmp/crw-build_ccache
-kinit "crw-build/codeready-workspaces-jenkins.rhev-ci-vms.eng.rdu2.redhat.com@REDHAT.COM" -kt ''' + CRW_KEYTAB + '''
-klist # verify working
-
+          def BOOTSTRAP = '''#!/bin/bash -xe
 hasChanged=0
-
-SOURCEDOCKERFILE=${WORKSPACE}/targetmid/operator-metadata.Dockerfile
 
 # REQUIRE: skopeo
 curl -L -s -S https://raw.githubusercontent.com/redhat-developer/codeready-workspaces/''' + MIDSTM_BRANCH + '''/product/updateBaseImages.sh -o /tmp/updateBaseImages.sh
 chmod +x /tmp/updateBaseImages.sh
 
-cd ${WORKSPACE}/sources
-  git checkout --track origin/''' + SOURCE_BRANCH + ''' || true
-  git config user.email "nickboldt+devstudio-release@gmail.com"
-  git config user.name "Red Hat Devstudio Release Bot"
-  git config --global push.default matching
-  SOURCE_SHA=$(git rev-parse HEAD) # echo ${SOURCE_SHA:0:8}
-cd ..
-
-cd ${WORKSPACE}/targetmid
-  git checkout --track origin/''' + MIDSTM_BRANCH + ''' || true
-  export GITHUB_TOKEN=''' + GITHUB_TOKEN + ''' # echo "''' + GITHUB_TOKEN + '''"
-  git config user.email nickboldt+devstudio-release@gmail.com
-  git config user.name "devstudio-release"
-  git config --global push.default matching
-  MIDSTM_SHA=$(git rev-parse HEAD) # echo ${MIDSTM_SHA:0:8}
-
-  # SOLVED :: Fatal: Could not read Username for "https://github.com", No such device or address :: https://github.com/github/hub/issues/1644
-  git remote -v
-  git config --global hub.protocol https
-  git remote set-url origin https://\$GITHUB_TOKEN:x-oauth-basic@github.com/''' + MIDSTM_REPO + '''.git
-  git remote -v
-cd ..
 
 # fetch sources to be updated
 DWNSTM_REPO="''' + DWNSTM_REPO + '''"
@@ -204,18 +99,15 @@ echo "[INFO] CSV_FILE = ${CSV_FILE}"
     git checkout manifests/ build/scripts/
   fi
 # fi
-
-cd ${WORKSPACE}/targetmid
-/tmp/updateBaseImages.sh -b ''' + MIDSTM_BRANCH + ''' -f ${SOURCEDOCKERFILE##*/} -maxdepth 1 || true
-cd ..
 '''
+
+                util.updateBaseImages("${WORKSPACE}/targetmid", MIDSTM_BRANCH, "-f operator-metadata.Dockerfile -maxdepth 1")
+
               }
 
           def SYNC_FILES_MID2DWN = "manifests metadata build" // folders in mid/dwn
 
-          OLD_SHA_DWN = sh(script: BOOTSTRAP + '''
-          cd ${WORKSPACE}/targetdwn; git rev-parse HEAD
-          ''', returnStdout: true)
+          OLD_SHA_DWN = util.getLastCommitSHA("${WORKSPACE}/targetdwn")
           println "Got OLD_SHA_DWN in targetdwn folder: " + OLD_SHA_DWN
 
           sh BOOTSTRAP + '''
@@ -232,7 +124,7 @@ for d in ''' + SYNC_FILES_MID2DWN + '''; do
   fi
 done
 
-cp -f ${SOURCEDOCKERFILE} ${WORKSPACE}/targetdwn/Dockerfile
+cp -f ${WORKSPACE}/targetmid/operator-metadata.Dockerfile ${WORKSPACE}/targetdwn/Dockerfile
 
 CRW_VERSION="''' + CRW_VERSION_F + '''"
 #apply patches
@@ -291,12 +183,12 @@ if [[ \$(git diff --name-only) ]]; then # file changed
 	OLD_SHA_DWN=\$(git rev-parse HEAD) # echo ${OLD_SHA_DWN:0:8}
 	git add Dockerfile ''' + SYNC_FILES_MID2DWN + '''
     /tmp/updateBaseImages.sh -b ''' + DWNSTM_BRANCH + ''' --nocommit
-  git commit -s -m "[sync] Update from ''' + SOURCE_REPO + ''' @ ${SOURCE_SHA:0:8} + ''' + MIDSTM_REPO + ''' @ ${MIDSTM_SHA:0:8}" \
+  git commit -s -m "[sync] Update from ''' + SOURCE_REPO + ''' @ ''' + SOURCE_SHA + ''' ''' + MIDSTM_REPO + ''' @ ''' + MIDSTM_SHA + '''" \
     Dockerfile ''' + SYNC_FILES_MID2DWN + ''' || true
 	git push origin ''' + DWNSTM_BRANCH + '''
 	NEW_SHA_DWN=\$(git rev-parse HEAD) # echo ${NEW_SHA_DWN:0:8}
 	if [[ "${OLD_SHA_DWN}" != "${NEW_SHA_DWN}" ]]; then hasChanged=1; fi
-  echo "[sync] Updated pkgs.devel @ ${NEW_SHA_DWN:0:8} from ''' + SOURCE_REPO + ''' @ ${SOURCE_SHA:0:8} + ''' + MIDSTM_REPO + ''' @ ${MIDSTM_SHA:0:8}"
+  echo "[sync] Updated pkgs.devel @ ${NEW_SHA_DWN:0:8} from ''' + SOURCE_REPO + ''' @ ''' + SOURCE_SHA + ''' ''' + MIDSTM_REPO + ''' @ ''' + MIDSTM_SHA + '''"
 else
     # file not changed, but check if base image needs an update
     # (this avoids having 2 commits for every change)
@@ -335,9 +227,8 @@ if [[ ${hasChanged} -eq 0 ]]; then
 fi
 '''
         }
-	        def NEW_SHA_DWN = sh(script: '''#!/bin/bash -xe
-	        cd ${WORKSPACE}/targetdwn; git rev-parse HEAD
-	        ''', returnStdout: true)
+
+          def NEW_SHA_DWN = util.getLastCommitSHA("${WORKSPACE}/targetdwn")
 	        println "Got NEW_SHA_DWN in targetdwn folder: " + NEW_SHA_DWN
 
 	        if (NEW_SHA_DWN.equals(OLD_SHA_DWN)) {
