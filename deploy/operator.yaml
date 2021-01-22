@@ -1,5 +1,5 @@
 #
-#  Copyright (c) 2018-2020 Red Hat, Inc.
+#  Copyright (c) 2018-2021 Red Hat, Inc.
 #    This program and the accompanying materials are made
 #    available under the terms of the Eclipse Public License 2.0
 #    which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -63,9 +63,9 @@ spec:
             - name: RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image
               value: registry.redhat.io/codeready-workspaces/jwtproxy-rhel8:2.6
             - name: RELATED_IMAGE_single_host_gateway
-              value: docker.io/traefik:v2.2.8
+              value: registry.redhat.io/codeready-workspaces/traefik-rhel8:2.6
             - name: RELATED_IMAGE_single_host_gateway_config_sidecar
-              value: quay.io/che-incubator/configbump:0.1.4
+              value: registry.redhat.io/codeready-workspaces/configbump-rhel8:2.6
             - name: CHE_FLAVOR
               value: codeready
             - name: CONSOLE_LINK_NAME

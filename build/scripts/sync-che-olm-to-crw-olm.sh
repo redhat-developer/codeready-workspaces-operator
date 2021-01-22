@@ -119,24 +119,60 @@ replaceField()
     > ${CSVFILE}.2; mv ${CSVFILE}.2 ${CSVFILE}
 }
 
+# header to reattach to yaml files after yq transform removes it
+COPYRIGHT="#
+#  Copyright (c) 2018-2021 Red Hat, Inc.
+#    This program and the accompanying materials are made
+#    available under the terms of the Eclipse Public License 2.0
+#    which is available at https://www.eclipse.org/legal/epl-2.0/
+#
+#  SPDX-License-Identifier: EPL-2.0
+#
+#  Contributors:
+#    Red Hat, Inc. - initial API and implementation
+"
+
 # similar method to insertEnvVar() used in insert-related-images-to-csv.sh; uses += instead of =
 replaceEnvVar()
 {
-  # don't do anything if the existing value is the same as the replacement one
-  if [[ "$(cat ${CSVFILE} | yq -r --arg updateName "${updateName}" '.spec.install.spec.deployments[].spec.template.spec.containers[].env[] | select(.name == $updateName).value')" != "${updateVal}" ]]; then
-	echo "[INFO] ${0##*/} :: ${updateName}: ${updateVal}"
-	cat ${CSVFILE} | yq -Y --arg updateName "${updateName}" --arg updateVal "${updateVal}" \
+	fileToChange=$1
+	# don't do anything if the existing value is the same as the replacement one
+	if [[ "$(cat ${fileToChange} | yq -r --arg updateName "${updateName}" '.spec.install.spec.deployments[].spec.template.spec.containers[].env[] | select(.name == $updateName).value')" != "${updateVal}" ]]; then
+		echo "[INFO] ${0##*/} :: ${fileToChange##*/} :: ${updateName}: ${updateVal}"
+		cat ${fileToChange} | yq -Y --arg updateName "${updateName}" --arg updateVal "${updateVal}" \
 		'.spec.install.spec.deployments[].spec.template.spec.containers[].env = [.spec.install.spec.deployments[].spec.template.spec.containers[].env[] | if (.name == $updateName) then (.value = $updateVal) else . end]' \
-		> ${CSVFILE}.2
+		> ${fileToChange}.2
 		# echo "replaced?"
-		# diff -u ${CSVFILE} ${CSVFILE}.2 || true
-		if [[ ! $(diff -u ${CSVFILE} ${CSVFILE}.2) ]]; then
+		# diff -u ${fileToChange} ${fileToChange}.2 || true
+		if [[ ! $(diff -u ${fileToChange} ${fileToChange}.2) ]]; then
 		# echo "insert $updateName = $updateVal"
-		cat ${CSVFILE} | yq -Y --arg updateName "${updateName}" --arg updateVal "${updateVal}" \
+		cat ${fileToChange} | yq -Y --arg updateName "${updateName}" --arg updateVal "${updateVal}" \
 			'.spec.install.spec.deployments[].spec.template.spec.containers[].env += [{"name": $updateName, "value": $updateVal}]' \
-			> ${CSVFILE}.2
+			> ${fileToChange}.2
 		fi
-		mv ${CSVFILE}.2 ${CSVFILE}
+		mv ${fileToChange}.2 ${fileToChange}
+	fi
+}
+
+# similar method to replaceEnvVar() but for a different path within the yaml
+replaceEnvVarOperatorYaml()
+{
+	fileToChange=$1
+	# don't do anything if the existing value is the same as the replacement one
+	if [[ "$(cat ${fileToChange} | yq -r --arg updateName "${updateName}" '.spec.template.spec.containers[].env[] | select(.name == $updateName).value')" != "${updateVal}" ]]; then
+		echo "[INFO] ${0##*/} :: ${fileToChange##*/} :: ${updateName}: ${updateVal}"
+		changed=$(cat ${fileToChange} | yq -Y --arg updateName "${updateName}" --arg updateVal "${updateVal}" \
+		'.spec.template.spec.containers[].env = [.spec.template.spec.containers[].env[] | if (.name == $updateName) then (.value = $updateVal) else . end]')
+		echo "${COPYRIGHT}${changed}" > "${fileToChange}.2"
+		# echo "replaced?"
+		# diff -u ${fileToChange} ${fileToChange}.2 || true
+		if [[ ! $(diff -u ${fileToChange} ${fileToChange}.2) ]]; then
+		#echo "insert $updateName = $updateVal"
+		changed=$(${fileToChange} | yq -Y --arg updateName "${updateName}" --arg updateVal "${updateVal}" \
+			'.spec.template.spec.containers[].env += [{"name": $updateName, "value": $updateVal}]')
+		echo "${COPYRIGHT}${changed}" > "${fileToChange}.2"
+		fi
+		mv ${fileToChange}.2 ${fileToChange}
 	fi
 }
 
@@ -250,7 +286,9 @@ yq -r --arg updateName "RELATED_IMAGE_keycloak" '.spec.install.spec.deployments[
 	)
 	for updateName in "${!operator_insertions[@]}"; do
 		updateVal="${operator_insertions[$updateName]}"
-		replaceEnvVar
+		replaceEnvVar "${CSVFILE}"
+		# apply same transforms in operator.yaml
+		replaceEnvVarOperatorYaml "${TARGETDIR}/deploy/operator.yaml"
 	done
 
 	# insert replaces: field
