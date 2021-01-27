@@ -63,9 +63,9 @@ spec:
             - name: RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image
               value: registry.redhat.io/codeready-workspaces/jwtproxy-rhel8:2.6
             - name: RELATED_IMAGE_single_host_gateway
-              value: docker.io/traefik:v2.2.8
+              value: registry.redhat.io/codeready-workspaces/traefik-rhel8:2.6
             - name: RELATED_IMAGE_single_host_gateway_config_sidecar
-              value: quay.io/che-incubator/configbump:0.1.4
+              value: registry.redhat.io/codeready-workspaces/configbump-rhel8:2.6
             - name: CHE_FLAVOR
               value: codeready
             - name: CONSOLE_LINK_NAME
