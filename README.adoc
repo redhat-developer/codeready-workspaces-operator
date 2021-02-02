@@ -4,36 +4,52 @@
 
 * The CRW operator has most of code in the upstream link:https://github.com/eclipse/che-operator/[che-operator] repo, including this link:https://github.com/eclipse/che-operator/blob/master/Dockerfile[Dockerfile].
 
-* This code is then synced to the link:http://pkgs.devel.redhat.com/cgit/containers/codeready-workspaces-operator/?h=crw-2.2-rhel-8[downstream repo] via this link:https://codeready-workspaces-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/view/CRW_CI/view/Releng/job/crw-operator_sync-github-to-pkgs.devel-pipeline/[job] (link:https://github.com/redhat-developer/codeready-workspaces-operator/blob/master/operator.Jenkinsfile[operator.Jenkinsfile]). The Jenkinsfile transforms the Che code into CRW code and commits the changed code directly to downstream so there's no need for a branch in che-operator or to have code duplicated here. 
+* This code is then synced to the link:http://pkgs.devel.redhat.com/cgit/containers/codeready-workspaces-operator/?h=crw-2-rhel-8[downstream repo] via a job located here:
 
-NOTE: The job can be configured to sync from any upstream che-operator branch, eg., `SOURCE_BRANCH` = `7.14.x` or `master`.
+  - https://main-jenkins-csb-crwqe.apps.ocp4.prod.psi.redhat.com/job/CRW_CI/ (jobs)
+  - https://gitlab.cee.redhat.com/codeready-workspaces/crw-jenkins/-/tree/master/jobs/CRW_CI (sources)
+  - https://github.com/redhat-developer/codeready-workspaces-images#jenkins-jobs (copied sources)
+
+The Jenkinsfile transforms the Che code into CRW code and commits the changed code directly to downstream so there's no need for a branch in che-operator or to have code duplicated here. 
+
+NOTE: The job can be configured to sync from any upstream che-operator branch, eg., `SOURCE_BRANCH` = `7.26.x` or `master`.
 
 * Once the sync is done:
 
-** the link:http://pkgs.devel.redhat.com/cgit/containers/codeready-workspaces-operator/?h=crw-2.2-rhel-8[codeready-workspaces-operator] repo is updated;
+** the link:http://pkgs.devel.redhat.com/cgit/containers/codeready-workspaces-operator/?h=crw-2-rhel-8[codeready-workspaces-operator] repo is updated;
 
-** a Brew build will be triggered via link:https://codeready-workspaces-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/job/get-sources-rhpkg-container-build/[this job]; 
+** a Brew build will be triggered via **get-sources-rhpkg-container-build** job
 
-** and, if successful, the Brew build will be link:https://codeready-workspaces-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/view/CRW_CI/view/Pipelines/job/push-container-to-quay/[pushed to Quay] as `link:https://quay.io/repository/crw/operator-rhel8?tag=latest&tab=tags[quay.io/crw/operator-rhel8]`.
+** and, if successful, the Brew build will be copied to Quay] as `https://quay.io/crw/crw-2-rhel8-operator`.
 
 ### Metadata container
 
 * Metadata for the CRW operator is contained in this repo. See link:https://github.com/redhat-developer/codeready-workspaces-operator/tree/master/manifests[manifests], link:https://github.com/redhat-developer/codeready-workspaces-operator/tree/master/metadata[metadata] and link:https://github.com/redhat-developer/codeready-workspaces-operator/tree/master/deploy[deploy] folders, and this link:https://github.com/redhat-developer/codeready-workspaces-operator/blob/master/operator-metadata.Dockerfile[operator-metadata.Dockerfile].
 
-* The metadata is then synced to the link:http://pkgs.devel.redhat.com/cgit/containers/codeready-workspaces-operator-metadata/?h=crw-2.2-rhel-8[downstream repo] via this link:https://codeready-workspaces-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/view/CRW_CI/view/Releng/job/crw-operator-metadata_sync-github-to-pkgs.devel-pipeline/[job] (link:https://github.com/redhat-developer/codeready-workspaces-operator/blob/master/operator-metadata.Jenkinsfile[operator-metadata.Jenkinsfile]).
+* The metadata is then synced to the link:http://pkgs.devel.redhat.com/cgit/containers/codeready-workspaces-operator-metadata/?h=crw-2-rhel-8[downstream repo] via a job located here:
 
-NOTE: The job can be configured to sync from any upstream che-operator branch, eg., `SOURCE_BRANCH` = `master`.
+  - https://main-jenkins-csb-crwqe.apps.ocp4.prod.psi.redhat.com/job/CRW_CI/ (jobs)
+  - https://gitlab.cee.redhat.com/codeready-workspaces/crw-jenkins/-/tree/master/jobs/CRW_CI (sources)
+  - https://github.com/redhat-developer/codeready-workspaces-images#jenkins-jobs (copied sources)
+
+NOTE: The job can be configured to sync from any upstream che-operator branch, eg., `SOURCE_BRANCH` = `7.26.x` or `master`.
 
 * Once the sync is done:
 
-** the link:http://pkgs.devel.redhat.com/cgit/containers/codeready-workspaces-operator-metadata/?h=crw-2.2-rhel-8[codeready-workspaces-operator-metadata] repo is updated;
+** the link:http://pkgs.devel.redhat.com/cgit/containers/codeready-workspaces-operator-metadata/?h=crw-2-rhel-8[codeready-workspaces-operator-metadata] repo is updated;
 
-** a Brew build will be triggered via link:https://codeready-workspaces-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/job/get-sources-rhpkg-container-build/[this job]; 
+** a Brew build will be triggered via **get-sources-rhpkg-container-build** job
 
-** and, if successful, the Brew build will be link:https://codeready-workspaces-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/view/CRW_CI/view/Pipelines/job/push-container-to-quay/[pushed to Quay] as `link:https://quay.io/repository/crw/operator-metadata?tag=latest&tab=tags[quay.io/crw/operator-metadata]`.
+** and, if successful, the Brew build will be copied to Quay] as `https://quay.io/crw/crw-2-rhel8-operator-metadata`.
 
 ### crwctl CLI binary
 
-* Once the operator and metadata is rebuilt, a new build of link:https://github.com/redhat-developer/codeready-workspaces-chectl[crwctl] is done, using this link:https://github.com/redhat-developer/codeready-workspaces-chectl/blob/master/Jenkinsfile[Jenkinsfile].
+* Once the operator and metadata is rebuilt, a new build of link:https://github.com/redhat-developer/codeready-workspaces-chectl[crwctl] is triggered.
 
 * This is triggered because the CRW operator-metadata's link:https://github.com/redhat-developer/codeready-workspaces-operator/tree/master/deploy[deploy folder] is used in crwctl to do deployment when there is no OLM present on the target cluster (OCP 3.11 and 4.1).
+
+See crwctl job located here:
+
+  - https://main-jenkins-csb-crwqe.apps.ocp4.prod.psi.redhat.com/job/CRW_CI/ (jobs)
+  - https://gitlab.cee.redhat.com/codeready-workspaces/crw-jenkins/-/tree/master/jobs/CRW_CI (sources)
+  - https://github.com/redhat-developer/codeready-workspaces-images#jenkins-jobs (copied sources)
