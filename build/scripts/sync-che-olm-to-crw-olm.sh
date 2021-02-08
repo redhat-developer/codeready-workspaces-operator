@@ -215,6 +215,7 @@ for CSVFILE in ${TARGETDIR}/manifests/codeready-workspaces.csv.yaml; do
 		-e 's|"devfileRegistryImage":.".+"|"devfileRegistryImage": ""|' \
 		-e 's|"pluginRegistryImage":.".+"|"pluginRegistryImage": ""|' \
 		-e 's|"identityProviderImage":.".+"|"identityProviderImage": ""|' \
+		-e 's|"workspaceNamespaceDefault":.".*"|"workspaceNamespaceDefault": "<username>-codeready"|' \
 		\
 		-e "s|quay.io/eclipse/codeready-operator:${CHE_VERSION}|registry.redhat.io/codeready-workspaces/crw-2-rhel8-operator:${CRW_VERSION}|" \
 		-e "s|quay.io/eclipse/che-server:.+|registry.redhat.io/codeready-workspaces/server-rhel8:${CRW_VERSION}|" \

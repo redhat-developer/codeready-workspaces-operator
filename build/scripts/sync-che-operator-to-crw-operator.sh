@@ -184,6 +184,7 @@ yq -y --arg updateName "${updateName}" --arg updateVal "${operator_insertions[$u
 		changed="$(cat "${TARGETDIR}/${d}" | \
 yq  -y '.spec.server.devfileRegistryImage=""|.spec.server.pluginRegistryImage=""' | \
 yq  -y '.spec.server.cheFlavor="codeready"' | \
+yq  -y '.spec.server.workspaceNamespaceDefault="<username>-codeready"' | \
 yq  -y '.spec.storage.pvcStrategy="per-workspace"' | \
 yq  -y '.spec.auth.identityProviderAdminUserName="admin"|.spec.auth.identityProviderImage=""' | \
 yq  -y 'del(.spec.k8s)')" && \
