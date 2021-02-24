@@ -113,15 +113,18 @@ done
 
 replaceField()
 {
+  theFile="$1"
+  updateName="$2"
+  updateVal="$3"
   echo "[INFO] ${0##*/} :: * ${updateName}: ${updateVal}"
-  cat ${CSVFILE} | yq -Y --arg updateName "${updateName}" --arg updateVal "${updateVal}" \
-    ${updateName}' = $updateVal' \
-    > ${CSVFILE}.2; mv ${CSVFILE}.2 ${CSVFILE}
+  changed=$(cat ${theFile} | yq -Y --arg updateName "${updateName}" --arg updateVal "${updateVal}" \
+    ${updateName}' = $updateVal')
+  echo "${COPYRIGHT}${changed}" > "${theFile}"
 }
 
 # header to reattach to yaml files after yq transform removes it
 COPYRIGHT="#
-#  Copyright (c) 2018-2021 Red Hat, Inc.
+#  Copyright (c) 2018-$(date +%Y) Red Hat, Inc.
 #    This program and the accompanying materials are made
 #    available under the terms of the Eclipse Public License 2.0
 #    which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -135,7 +138,7 @@ COPYRIGHT="#
 # similar method to insertEnvVar() used in insert-related-images-to-csv.sh; uses += instead of =
 replaceEnvVar()
 {
-	fileToChange=$1
+	fileToChange="$1"
 	# don't do anything if the existing value is the same as the replacement one
 	if [[ "$(cat ${fileToChange} | yq -r --arg updateName "${updateName}" '.spec.install.spec.deployments[].spec.template.spec.containers[].env[] | select(.name == $updateName).value')" != "${updateVal}" ]]; then
 		echo "[INFO] ${0##*/} :: ${fileToChange##*/} :: ${updateName}: ${updateVal}"
@@ -145,10 +148,10 @@ replaceEnvVar()
 		# echo "replaced?"
 		# diff -u ${fileToChange} ${fileToChange}.2 || true
 		if [[ ! $(diff -u ${fileToChange} ${fileToChange}.2) ]]; then
-		# echo "insert $updateName = $updateVal"
-		cat ${fileToChange} | yq -Y --arg updateName "${updateName}" --arg updateVal "${updateVal}" \
-			'.spec.install.spec.deployments[].spec.template.spec.containers[].env += [{"name": $updateName, "value": $updateVal}]' \
-			> ${fileToChange}.2
+			# echo "insert $updateName = $updateVal"
+			cat ${fileToChange} | yq -Y --arg updateName "${updateName}" --arg updateVal "${updateVal}" \
+				'.spec.install.spec.deployments[].spec.template.spec.containers[].env += [{"name": $updateName, "value": $updateVal}]' \
+				> ${fileToChange}.2
 		fi
 		mv ${fileToChange}.2 ${fileToChange}
 	fi
@@ -157,7 +160,7 @@ replaceEnvVar()
 # similar method to replaceEnvVar() but for a different path within the yaml
 replaceEnvVarOperatorYaml()
 {
-	fileToChange=$1
+	fileToChange="$1"
 	# don't do anything if the existing value is the same as the replacement one
 	if [[ "$(cat ${fileToChange} | yq -r --arg updateName "${updateName}" '.spec.template.spec.containers[].env[] | select(.name == $updateName).value')" != "${updateVal}" ]]; then
 		echo "[INFO] ${0##*/} :: ${fileToChange##*/} :: ${updateName}: ${updateVal}"
@@ -168,7 +171,7 @@ replaceEnvVarOperatorYaml()
 		# diff -u ${fileToChange} ${fileToChange}.2 || true
 		if [[ ! $(diff -u ${fileToChange} ${fileToChange}.2) ]]; then
 		#echo "insert $updateName = $updateVal"
-		changed=$(${fileToChange} | yq -Y --arg updateName "${updateName}" --arg updateVal "${updateVal}" \
+		changed=$(cat ${fileToChange} | yq -Y --arg updateName "${updateName}" --arg updateVal "${updateVal}" \
 			'.spec.template.spec.containers[].env += [{"name": $updateName, "value": $updateVal}]')
 		echo "${COPYRIGHT}${changed}" > "${fileToChange}.2"
 		fi
@@ -292,6 +295,12 @@ yq -r --arg updateName "RELATED_IMAGE_keycloak" '.spec.install.spec.deployments[
 		replaceEnvVarOperatorYaml "${TARGETDIR}/deploy/operator.yaml"
 	done
 
+	# CRW-1579 set correct crw-2-rhel8-operator image and tag in operator.yaml
+	oldImage=$(yq -r '.spec.template.spec.containers[].image' "${TARGETDIR}/deploy/operator.yaml")
+	if [[ $oldImage ]]; then 
+		replaceField "${TARGETDIR}/deploy/operator.yaml" ".spec.template.spec.containers[].image" "${oldImage%%:*}:${CRW_VERSION}"
+	fi
+
 	# insert replaces: field
 	declare -A spec_insertions=(
 		[".spec.replaces"]="crwoperator.v${CSV_VERSION_PREV}"
@@ -299,7 +308,7 @@ yq -r --arg updateName "RELATED_IMAGE_keycloak" '.spec.install.spec.deployments[
 	)
 	for updateName in "${!spec_insertions[@]}"; do
 		updateVal="${spec_insertions[$updateName]}"
-		replaceField
+		replaceField "${CSVFILE}" "${updateName}" "${updateVal}"
 	done
 
 	# add more RELATED_IMAGE_ fields for the images referenced by the registries
