@@ -68,7 +68,7 @@ SSO_IMAGE="registry.redhat.io/rh-sso-7/sso74-openshift-rhel8:${SSO_TAG}" # and r
 
 # global / generic changes
 pushd "${SOURCEDIR}" >/dev/null
-	COPY_FOLDERS="cmd olm pkg templates vendor version"
+	COPY_FOLDERS="cmd mocks olm pkg templates vendor version"
 	echo "Rsync ${COPY_FOLDERS} to ${TARGETDIR}"
 	rsync -azrlt ${COPY_FOLDERS} ${TARGETDIR}/
 
