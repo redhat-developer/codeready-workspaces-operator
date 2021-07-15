@@ -14,7 +14,6 @@ metadata:
   name: codeready-workspaces
 spec:
   server:
-    useInternalClusterSVCNames: true
     cheFlavor: codeready
     cheClusterRoles: ''
     cheWorkspaceClusterRole: ''
