@@ -172,23 +172,25 @@ replaceEnvVarOperatorYaml()
 {
 	fileToChange="$1"
 	header="$2"
+	field="$3"
 	# don't do anything if the existing value is the same as the replacement one
 	# shellcheck disable=SC2016 disable=SC2002
-	if [[ "$(cat "${fileToChange}" | yq -r --arg updateName "${updateName}" '.spec.template.spec.containers[].env[] | select(.name == $updateName).value')" != "${updateVal}" ]]; then
+	if [[ "$(cat "${fileToChange}" | yq -r --arg updateName "${updateName}" ${field}'[] | select(.name == $updateName).value')" != "${updateVal}" ]]; then
 		echo "[INFO] ${0##*/} rEVOY :: ${fileToChange##*/} :: ${updateName}: ${updateVal}"
 		if [[ $updateVal == "DELETEME" ]]; then
-			changed=$(cat "${fileToChange}" | yq -Y --arg updateName "${updateName}" 'del(.spec.template.spec.containers[].env[]|select(.name == $updateName))')
+			changed=$(cat "${fileToChange}" | yq -Y --arg updateName "${updateName}" 'del('${field}'[]|select(.name == $updateName))')
 			echo "${header}${changed}" > "${fileToChange}.2"
 		else
+			# attempt to replace updateName field with updateVal value
 			changed=$(cat "${fileToChange}" | yq -Y --arg updateName "${updateName}" --arg updateVal "${updateVal}" \
-'.spec.template.spec.containers[].env = [.spec.template.spec.containers[].env[] | if (.name == $updateName) then (.value = $updateVal) else . end]')
+${field}' = ['${field}'[] | if (.name == $updateName) then (.value = $updateVal) else . end]')
 			echo "${header}${changed}" > "${fileToChange}.2"
-			# echo "replaced?"
-			# diff -u "${fileToChange}" "${fileToChange}.2" || true
+			 echo "replaced?"
+			 diff -u "${fileToChange}" "${fileToChange}.2" || true
 			if [[ ! $(diff -u "${fileToChange}" "${fileToChange}.2") ]]; then
-			#echo "insert $updateName = $updateVal"
-			changed=$(cat "${fileToChange}" | yq -Y --arg updateName "${updateName}" --arg updateVal "${updateVal}" \
-				'.spec.template.spec.containers[].env += [{"name": $updateName, "value": $updateVal}]')
+			echo "insert $updateName = $updateVal"
+			 changed=$(cat "${fileToChange}" | yq -Y --arg updateName "${updateName}" --arg updateVal "${updateVal}" \
+				${field}' += [{"name": $updateName, "value": $updateVal}]')
 			echo "${header}${changed}" > "${fileToChange}.2"
 			fi
 		fi
@@ -221,13 +223,28 @@ replaceEnvVarOperatorYaml()
 		["RELATED_IMAGE_postgres"]="${POSTGRES_IMAGE}"
 		["RELATED_IMAGE_keycloak"]="${SSO_IMAGE}"
 
-		# remove this env var using DELETEME keyword
+		# remove env vars using DELETEME keyword
 		["RELATED_IMAGE_che_tls_secrets_creation_job"]="DELETEME"
+		["RELATED_IMAGE_internal_rest_backup_server"]="DELETEME"
+		["RELATED_IMAGE_gateway_authentication_sidecar"]="DELETEME"
+		["RELATED_IMAGE_gateway_authorization_sidecar"]="DELETEME"
+		["RELATED_IMAGE_gateway_header_sidecar"]="DELETEME"
 	)
 	while IFS= read -r -d '' d; do
 		for updateName in "${!operator_replacements[@]}"; do
 			updateVal="${operator_replacements[$updateName]}"
-			replaceEnvVarOperatorYaml "${d}" "${COPYRIGHT}"
+			replaceEnvVarOperatorYaml "${d}" "${COPYRIGHT}" '.spec.template.spec.containers[0].env'
+		done
+	done <   <(find "${TARGETDIR}/deploy" -type f -name "operator*.yaml" -print0)
+
+	declare -A operator_replacements2=(
+		["RELATED_IMAGE_gateway"]="${CRW_TRAEFIK_IMAGE}"
+		["RELATED_IMAGE_gateway_configurer"]="${CRW_CONFIGBUMP_IMAGE}"
+	)
+	while IFS= read -r -d '' d; do
+		for updateName in "${!operator_replacements2[@]}"; do
+			updateVal="${operator_replacements2[$updateName]}"
+			replaceEnvVarOperatorYaml "${d}" "${COPYRIGHT}" '.spec.template.spec.containers[1].env'
 		done
 	done <   <(find "${TARGETDIR}/deploy" -type f -name "operator*.yaml" -print0)
 
@@ -240,13 +257,13 @@ replaceEnvVarOperatorYaml()
 	for updateName in "${!operator_insertions[@]}"; do
 		updateVal="${operator_insertions[$updateName]}"
 		# apply same transforms in operator.yaml
-		replaceEnvVarOperatorYaml "${TARGETDIR}/deploy/operator.yaml" "${COPYRIGHT}"
+		replaceEnvVarOperatorYaml "${TARGETDIR}/deploy/operator.yaml" "${COPYRIGHT}" '.spec.template.spec.containers[0].env'
 	done
 
 	# CRW-1579 set correct crw-2-rhel8-operator image and tag in operator.yaml
-	oldImage=$(yq -r '.spec.template.spec.containers[].image' "${TARGETDIR}/deploy/operator.yaml")
+	oldImage=$(yq -r '.spec.template.spec.containers[0].image' "${TARGETDIR}/deploy/operator.yaml")
 	if [[ $oldImage ]]; then 
-		replaceField "${TARGETDIR}/deploy/operator.yaml" ".spec.template.spec.containers[].image" "${oldImage%%:*}:${CRW_VERSION}" "${COPYRIGHT}"
+		replaceField "${TARGETDIR}/deploy/operator.yaml" ".spec.template.spec.containers[0].image" "${oldImage%%:*}:${CRW_VERSION}" "${COPYRIGHT}"
 	fi
 
 	# see both sync-che-o*.sh scripts - need these since we're syncing to different midstream/dowstream repos
