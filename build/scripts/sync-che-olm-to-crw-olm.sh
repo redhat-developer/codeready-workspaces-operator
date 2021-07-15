@@ -56,7 +56,7 @@ if [[ $# -lt 8 ]]; then usage; fi
 while [[ "$#" -gt 0 ]]; do
   case $1 in
 	'--olm-channel') OLM_CHANNEL="$2"; shift 1;; # folder to use under https://github.com/eclipse-che/che-operator/tree/master/deploy/olm-catalog
-    '-b'|'--crw-branch') MIDSTM_BRANCH="$2"; shift 1;; # branch of redhat-developer/codeready-workspaces/pom.xml to check as default CHE_VERSION
+    '-b'|'--crw-branch') MIDSTM_BRANCH="$2"; shift 1;; # branch of redhat-developer/codeready-workspaces from which to load plugin and devfile reg container refs
 	# for CSV_VERSION = 2.2.0, get CRW_VERSION = 2.2
 	'-v') CSV_VERSION="$2"; CRW_VERSION="${CSV_VERSION%.*}"; shift 1;;
 	# previous version to set in CSV
@@ -81,11 +81,6 @@ if [[ ! -d "${TARGETDIR}" ]]; then usage; fi
 # if current CSV and previous CVS version not set, die
 if [[ "${CSV_VERSION}" == "2.y.0" ]]; then usage; fi
 if [[ "${CSV_VERSION_PREV}" == "2.x.0" ]]; then usage; fi
-
-# get che version from crw server root pom, eg., 7.14.3
-if [[ ! ${CHE_VERSION} ]]; then
-	CHE_VERSION="$(curl -sSLo - https://raw.githubusercontent.com/redhat-developer/codeready-workspaces/${MIDSTM_BRANCH}/pom.xml | grep -E "<che.version>" | sed -r -e "s#.+<che.version>(.+)</che.version>#\1#" || exit 1)"
-fi
 
 # see both sync-che-o*.sh scripts - need these since we're syncing to different midstream/dowstream repos
 CRW_RRIO="registry.redhat.io/codeready-workspaces"
