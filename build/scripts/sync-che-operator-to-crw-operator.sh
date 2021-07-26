@@ -79,15 +79,6 @@ echo "Rsync ${COPY_FOLDERS} to ${TARGETDIR}"
 # shellcheck disable=SC2086
 rsync -azrlt ${COPY_FOLDERS} ${TARGETDIR}/
 
-# delete unneeded files
-echo "Delete olm/eclipse-che-preview-kubernetes and olm/eclipse-che-preview-openshift"
-rm -fr "${TARGETDIR}/olm/eclipse-che-preview-kubernetes ${TARGETDIR}/olm/eclipse-che-preview-openshift"
-echo "Delete deploy/*/eclipse-che-preview-kubernetes and deploy/olm-catalog/stable"
-rm -fr "${TARGETDIR}/deploy/olm-catalog/eclipse-che-preview-kubernetes"
-rm -fr "${TARGETDIR}/deploy/olm-catalog/nightly/eclipse-che-preview-kubernetes"
-# remove files with embedded RELATED_IMAGE_* values for Che stable releases
-rm -fr "${TARGETDIR}/deploy/olm-catalog/stable" 
-
 # sed changes
 while IFS= read -r -d '' d; do
 	if [[ -d "${SOURCEDIR}/${d%/*}" ]]; then mkdir -p "${TARGETDIR}"/"${d%/*}"; fi
@@ -110,28 +101,14 @@ while IFS= read -r -d '' d; do
 			echo "Converted (sed) ${d}"
 		fi
 	fi
-done <   <(find deploy pkg/deploy -type f -not -name "defaults_test.go" -print0)
+done <   <(find bundle config pkg/deploy api controllers -type f -not -name "defaults_test.go" -print0)
 
 # shellcheck disable=SC2086
 while IFS= read -r -d '' d; do
 	sed -r \
-		-e 's|(cheVersionTest.*=) ".+"|\1 "'${CRW_VERSION}'"|' \
-		\
-		-e 's|(cheServerImageTest.*=) ".+"|\1 "'${CRW_SERVER_IMAGE}'"|' \
-		-e 's|(pluginRegistryImageTest.*=) ".+"|\1 "'${CRW_PLUGINREGISTRY_IMAGE}'"|' \
-		-e 's|(devfileRegistryImageTest.*=) ".+"|\1 "'${CRW_DEVFILEREGISTRY_IMAGE}'"|' \
-		\
-		-e 's|(brokerMetadataTest.*=) ".+"|\1 "'${CRW_BROKER_METADATA_IMAGE}'"|' \
-		-e 's|(brokerArtifactsTest.*=) ".+"|\1 "'${CRW_BROKER_ARTIFACTS_IMAGE}'"|' \
-		-e 's|(jwtProxyTest.*=) ".+"|\1 "'${CRW_JWTPROXY_IMAGE}'"|' \
-		\
-		-e 's|(pvcJobsImageTest.*=) ".+"|\1 "'${UBI_IMAGE}'"|' \
-		-e 's|(postgresImageTest.*=) ".+"|\1 "'${POSTGRES_IMAGE}'"|' \
-		-e 's|(keycloakImageTest.*=) ".+"|\1 "'${SSO_IMAGE}'"|' \
-		\
 		`# hardcoded test values` \
 		-e 's|"docker.io/eclipse/che-operator:latest": * "che-operator:latest"|"'${CRW_RRIO}/${CRW_OPERATOR}':latest":  "'${CRW_OPERATOR}':latest"|' \
-		-e 's|"quay.io/eclipse/che-operator:[0-9.]+": *"che-operator:[0-9.]+"|"'${CRW_RRIO}'/server-operator-rhel8:2.0": "server-operator-rhel8:2.0"|' \
+		-e 's|"eclipse/che-operator:[0-9.]+": *"che-operator:[0-9.]+"|"'${CRW_RRIO}'/server-operator-rhel8:2.0": "server-operator-rhel8:2.0"|' \
 		-e 's|"che-operator:[0-9.]+": *"che-operator:[0-9.]+"|"'${CRW_RRIO}/${CRW_OPERATOR}:${CRW_VERSION}'":  "'${CRW_OPERATOR}:${CRW_VERSION}'"|' \
 	"$d" > "${TARGETDIR}/${d}"
 	if [[ $(diff -u "$d" "${TARGETDIR}/${d}") ]]; then
@@ -235,12 +212,13 @@ declare -A operator_replacements=(
 	["RELATED_IMAGE_gateway_authorization_sidecar"]="DELETEME"
 	["RELATED_IMAGE_gateway_header_sidecar"]="DELETEME"
 )
-while IFS= read -r -d '' d; do
-	for updateName in "${!operator_replacements[@]}"; do
-		updateVal="${operator_replacements[$updateName]}"
-		replaceEnvVarOperatorYaml "${d}" "${COPYRIGHT}" '.spec.template.spec.containers[0].env'
-	done
-done <   <(find "${TARGETDIR}/deploy" -type f -name "operator*.yaml" -print0)
+
+OPERATOR_DEPLOYMENT_YAML="config/manager/manager.yaml"
+
+for updateName in "${!operator_replacements[@]}"; do
+	updateVal="${operator_replacements[$updateName]}"
+	replaceEnvVarOperatorYaml "${TARGETDIR}/${OPERATOR_DEPLOYMENT_YAML}" "${COPYRIGHT}" '.spec.template.spec.containers[0].env'
+done
 
 # see both sync-che-o*.sh scripts - need these since we're syncing to different midstream/dowstream repos
 # insert keycloak image references for s390x and ppc64le
@@ -250,14 +228,14 @@ declare -A operator_insertions=(
 )
 for updateName in "${!operator_insertions[@]}"; do
 	updateVal="${operator_insertions[$updateName]}"
-	# apply same transforms in operator.yaml
-	replaceEnvVarOperatorYaml "${TARGETDIR}/deploy/operator.yaml" "${COPYRIGHT}" '.spec.template.spec.containers[0].env'
+	# apply same transforms in operator deployment yaml
+	replaceEnvVarOperatorYaml "${TARGETDIR}/${OPERATOR_DEPLOYMENT_YAML}" "${COPYRIGHT}" '.spec.template.spec.containers[0].env'
 done
 
-# CRW-1579 set correct crw-2-rhel8-operator image and tag in operator.yaml
-oldImage=$(yq -r '.spec.template.spec.containers[0].image' "${TARGETDIR}/deploy/operator.yaml")
+# CRW-1579 set correct crw-2-rhel8-operator image and tag in operator deployment yaml
+oldImage=$(yq -r '.spec.template.spec.containers[0].image' "${TARGETDIR}/${OPERATOR_DEPLOYMENT_YAML}")
 if [[ $oldImage ]]; then 
-	replaceField "${TARGETDIR}/deploy/operator.yaml" ".spec.template.spec.containers[0].image" "${oldImage%%:*}:${CRW_VERSION}" "${COPYRIGHT}"
+	replaceField "${TARGETDIR}/${OPERATOR_DEPLOYMENT_YAML}" ".spec.template.spec.containers[0].image" "${oldImage%%:*}:${CRW_VERSION}" "${COPYRIGHT}"
 fi
 
 ##### update the second container yaml
@@ -266,46 +244,69 @@ declare -A operator_replacements2=(
 	["RELATED_IMAGE_gateway"]="${CRW_TRAEFIK_IMAGE}"
 	["RELATED_IMAGE_gateway_configurer"]="${CRW_CONFIGBUMP_IMAGE}"
 )
-while IFS= read -r -d '' d; do
-	for updateName in "${!operator_replacements2[@]}"; do
-		updateVal="${operator_replacements2[$updateName]}"
-		replaceEnvVarOperatorYaml "${d}" "${COPYRIGHT}" '.spec.template.spec.containers[1].env'
-	done
-done <   <(find "${TARGETDIR}/deploy" -type f -name "operator*.yaml" -print0)
+
+for updateName in "${!operator_replacements2[@]}"; do
+	updateVal="${operator_replacements2[$updateName]}"
+	replaceEnvVarOperatorYaml "${TARGETDIR}/${OPERATOR_DEPLOYMENT_YAML}" "${COPYRIGHT}" '.spec.template.spec.containers[1].env'
+done
 
 # update second container image from quay.io/che-incubator/devworkspace-che-operator:ci to CRW_DWCO_IMAGE
-replaceField "${TARGETDIR}/deploy/operator.yaml" '.spec.template.spec.containers[1].image' "${CRW_DWCO_IMAGE}" "${COPYRIGHT}"
+replaceField "${TARGETDIR}/${OPERATOR_DEPLOYMENT_YAML}" '.spec.template.spec.containers[1].image' "${CRW_DWCO_IMAGE}" "${COPYRIGHT}"
+
+CR_YAML="config/samples/org.eclipse.che_v1_checluster.yaml"
 
 # see both sync-che-o*.sh scripts - need these since we're syncing to different midstream/dowstream repos
 # yq changes - transform env vars from Che to CRW values
-while IFS= read -r -d '' d; do
-	changed="$(cat "${d}" | \
+changed="$(cat "${TARGETDIR}/${CR_YAML}" | \
 yq  -y '.spec.server.devfileRegistryImage=""|.spec.server.pluginRegistryImage=""' | \
 yq  -y '.spec.server.cheFlavor="codeready"' | \
 yq  -y '.spec.server.workspaceNamespaceDefault="<username>-codeready"' | \
 yq  -y '.spec.storage.pvcStrategy="per-workspace"' | \
 yq  -y '.spec.auth.identityProviderAdminUserName="admin"|.spec.auth.identityProviderImage=""' | \
 yq  -y 'del(.spec.k8s)')" && \
-	echo "${COPYRIGHT}${changed}" > "${d}"
-	if [[ $(diff -u "$d" "${d}") ]]; then
-		echo "Converted (yq #3) ${d}"
-	fi
-done <   <(find "${TARGETDIR}/deploy/crds" -type f -name "org_v1_che_cr.yaml" -print0)
-
-# # delete unneeded files
-# echo "Delete olm/eclipse-che-preview-kubernetes and olm/eclipse-che-preview-openshift"
-# rm -fr "${TARGETDIR}/olm/eclipse-che-preview-kubernetes ${TARGETDIR}/olm/eclipse-che-preview-openshift"
-# echo "Delete deploy/*/eclipse-che-preview-kubernetes and deploy/olm-catalog/stable"
-# rm -fr "${TARGETDIR}/deploy/olm-catalog/eclipse-che-preview-kubernetes"
-# rm -fr "${TARGETDIR}/deploy/olm-catalog/nightly/eclipse-che-preview-kubernetes"
-# # remove files with embedded RELATED_IMAGE_* values for Che stable releases
-# rm -fr "${TARGETDIR}/deploy/olm-catalog/stable" 
+echo "${COPYRIGHT}${changed}" > "${TARGETDIR}/${CR_YAML}"
+if [[ $(diff -u "${CR_YAML}" "${TARGETDIR}/${CR_YAML}") ]]; then
+	echo "Converted (yq #3) ${TARGETDIR}/${CR_YAML}"
+fi
 
 # if sort the file, we'll lose all the comments
-yq -yY '.spec.template.spec.containers[0].env |= sort_by(.name)' "${TARGETDIR}/deploy/operator.yaml" > "${TARGETDIR}/deploy/operator.yaml2"
-yq -yY '.spec.template.spec.containers[1].env |= sort_by(.name)' "${TARGETDIR}/deploy/operator.yaml2" > "${TARGETDIR}/deploy/operator.yaml"
-echo "${COPYRIGHT}$(cat "${TARGETDIR}/deploy/operator.yaml")" > "${TARGETDIR}/deploy/operator.yaml2"
-mv "${TARGETDIR}/deploy/operator.yaml2" "${TARGETDIR}/deploy/operator.yaml" 
+yq -yY '.spec.template.spec.containers[0].env |= sort_by(.name)' "${TARGETDIR}/${OPERATOR_DEPLOYMENT_YAML}" > "${TARGETDIR}/${OPERATOR_DEPLOYMENT_YAML}2"
+yq -yY '.spec.template.spec.containers[1].env |= sort_by(.name)' "${TARGETDIR}/${OPERATOR_DEPLOYMENT_YAML}2" > "${TARGETDIR}/${OPERATOR_DEPLOYMENT_YAML}"
+echo "${COPYRIGHT}$(cat "${TARGETDIR}/${OPERATOR_DEPLOYMENT_YAML}")" > "${TARGETDIR}/${OPERATOR_DEPLOYMENT_YAML}2"
+mv "${TARGETDIR}/${OPERATOR_DEPLOYMENT_YAML}2" "${TARGETDIR}/${OPERATOR_DEPLOYMENT_YAML}" 
+
+# delete unneeded files
+rm -rf "${TARGETDIR}/deploy"
+rm -rf "${TARGETDIR}/cmd"
+rm -rf "${TARGETDIR}/pkg/apis"
+rm -rf "${TARGETDIR}/pkg/controller"
+echo "Delete ${TARGETDIR}/bundle/nightly/eclipse-che-preview-kubernetes ${TARGETDIR}/bundle/stable"
+rm -rf "${TARGETDIR}/bundle/nightly/eclipse-che-preview-kubernetes"
+rm -rf "${TARGETDIR}/bundle/stable"
+# todo remove extra files from pkd/deploy
+# todo check tests, compilation, image build
+
+# copy extra files
+cp -f "${SOURCEDIR}/main.go" "${TARGETDIR}/main.go"
+cp -f "${SOURCEDIR}/go.mod" "${TARGETDIR}/go.mod"
+cp -f "${SOURCEDIR}/go.sum" "${TARGETDIR}/go.sum"
+
+rm -rf "${TARGETDIR}/pkg/deploy/server/deployment_che.go"
+rm -rf "${TARGETDIR}/pkg/deploy/server/service.go"
+rm -rf "${TARGETDIR}/pkg/deploy/server/deployment_che_test.go"
+rm -rf "${TARGETDIR}/pkg/deploy/server/configmap_cert.go"
+rm -rf "${TARGETDIR}/pkg/deploy/server/configmap_cert_test.go"
+rm -rf "${TARGETDIR}/pkg/deploy/server/che_service_test.go"
+rm -rf "${TARGETDIR}/pkg/deploy/server/che_configmap.go"
+rm -rf "${TARGETDIR}/pkg/deploy/server/che_configmap_test.go"
+
+rm -rf "${TARGETDIR}/vendor"
+cp -rf "${SOURCEDIR}/vendor" "${TARGETDIR}/vendor"
+
+# Fix tests
+sed -ri 's|Images: .*"che-workspace-plugin-broker-metadata=.*"|Images: "che-workspace-plugin-broker-artifacts=registry.redhat.io/codeready-workspaces/pluginbroker-artifacts-rhel8:2.11;che-workspace-plugin-broker-metadata=registry.redhat.io/codeready-workspaces/pluginbroker-metadata-rhel8:2.11"|' "${TARGETDIR}/controllers/che/checluster_controller_test.go"
+
+sed -ri 's|defaultInternalRestBackupServerImage = GetDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_internal_rest_backup_server"))||' "${TARGETDIR}/pkg/deploy/defaults.go"
 
 popd >/dev/null || exit
 
