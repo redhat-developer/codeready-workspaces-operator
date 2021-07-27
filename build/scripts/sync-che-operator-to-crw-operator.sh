@@ -283,27 +283,33 @@ rm -rf "${TARGETDIR}/bundle/nightly/eclipse-che-preview-kubernetes"
 rm -rf "${TARGETDIR}/bundle/stable"
 
 # copy extra files
-cp -f "${SOURCEDIR}/main.go" "${TARGETDIR}/main.go"
-cp -f "${SOURCEDIR}/go.mod" "${TARGETDIR}/go.mod"
-cp -f "${SOURCEDIR}/go.sum" "${TARGETDIR}/go.sum"
+cp -f "${SOURCEDIR}/main.go" "${SOURCEDIR}/go.mod" "${SOURCEDIR}/go.sum" "${TARGETDIR}"
 
-rm -rf "${TARGETDIR}/pkg/deploy/server/deployment_che.go"
-rm -rf "${TARGETDIR}/pkg/deploy/server/service.go"
-rm -rf "${TARGETDIR}/pkg/deploy/server/deployment_che_test.go"
-rm -rf "${TARGETDIR}/pkg/deploy/server/configmap_cert.go"
-rm -rf "${TARGETDIR}/pkg/deploy/server/configmap_cert_test.go"
-rm -rf "${TARGETDIR}/pkg/deploy/server/che_service_test.go"
-rm -rf "${TARGETDIR}/pkg/deploy/server/che_configmap.go"
-rm -rf "${TARGETDIR}/pkg/deploy/server/che_configmap_test.go"
+rm -rf "${TARGETDIR}/pkg/deploy/server/deployment_che.go" \
+"${TARGETDIR}/pkg/deploy/server/service.go" \
+"${TARGETDIR}/pkg/deploy/server/deployment_che_test.go" \
+"${TARGETDIR}/pkg/deploy/server/configmap_cert.go" \
+"${TARGETDIR}/pkg/deploy/server/configmap_cert_test.go" \
+"${TARGETDIR}/pkg/deploy/server/che_service_test.go" \
+"${TARGETDIR}/pkg/deploy/server/che_configmap.go" \
+"${TARGETDIR}/pkg/deploy/server/che_configmap_test.go"
 
 rm -rf "${TARGETDIR}/vendor"
 cp -rf "${SOURCEDIR}/vendor" "${TARGETDIR}/vendor"
 
-# Comment not used images
-sed -ri 's|(\t)(defaultCheTLSSecretsCreationJobImage = util.GetDeploymentEnv\(operatorDeployment, util.GetArchitectureDependentEnv\("RELATED_IMAGE_che_tls_secrets_creation_job"\)\))|\1// \2|' "${TARGETDIR}/pkg/deploy/defaults.go"
-sed -ri 's|(\t)(defaultInternalRestBackupServerImage = util.GetDeploymentEnv\(operatorDeployment, util.GetArchitectureDependentEnv\("RELATED_IMAGE_internal_rest_backup_server"\)\))|\1// \2|' "${TARGETDIR}/pkg/deploy/defaults.go"
-sed -ri 's|(\t)(defaultGatewayAuthenticationSidecarImage = util.GetDeploymentEnv\(operatorDeployment, util.GetArchitectureDependentEnv\("RELATED_IMAGE_gateway_authentication_sidecar"\)\))|\1// \2|' "${TARGETDIR}/pkg/deploy/defaults.go"
-sed -ri 's|(\t)(defaultGatewayAuthorizationSidecarImage = util.GetDeploymentEnv\(operatorDeployment, util.GetArchitectureDependentEnv\("RELATED_IMAGE_gateway_authorization_sidecar"\)\))|\1// \2|' "${TARGETDIR}/pkg/deploy/defaults.go"
-sed -ri 's|(\t)(defaultGatewayHeaderProxySidecarImage = util.GetDeploymentEnv\(operatorDeployment, util.GetArchitectureDependentEnv\("RELATED_IMAGE_gateway_header_sidecar"\)\))|\1// \2|' "${TARGETDIR}/pkg/deploy/defaults.go"
+# Comment out not used images
+sed -i "${TARGETDIR}/pkg/deploy/defaults.go" -r \
+-e 's|(\t)(defaultCheTLSSecretsCreationJobImage = getDefaultFromEnv\(util.GetArchitectureDependentEnv\("RELATED_IMAGE_che_tls_secrets_creation_job"\)\))|\1// \2|' \
+-e 's|(\t)(defaultInternalRestBackupServerImage = getDefaultFromEnv\(util.GetArchitectureDependentEnv\("RELATED_IMAGE_internal_rest_backup_server"\)\))|\1// \2|' \
+-e 's|(\t)(defaultGatewayAuthenticationSidecarImage = getDefaultFromEnv\(util.GetArchitectureDependentEnv\("RELATED_IMAGE_gateway_authentication_sidecar"\)\))|\1// \2|' \
+-e 's|(\t)(defaultGatewayAuthorizationSidecarImage = getDefaultFromEnv\(util.GetArchitectureDependentEnv\("RELATED_IMAGE_gateway_authorization_sidecar"\)\))|\1// \2|' \
+-e 's|(\t)(defaultGatewayHeaderProxySidecarImage = getDefaultFromEnv\(util.GetArchitectureDependentEnv\("RELATED_IMAGE_gateway_header_sidecar"\)\))|\1// \2|'
+
+sed -i "${TARGETDIR}/pkg/deploy/defaults.go" -r \
+-e 's|(\t)(defaultCheTLSSecretsCreationJobImage = util.GetDeploymentEnv\(operatorDeployment, util.GetArchitectureDependentEnv\("RELATED_IMAGE_che_tls_secrets_creation_job"\)\))|\1// \2|' \
+-e 's|(\t)(defaultInternalRestBackupServerImage = util.GetDeploymentEnv\(operatorDeployment, util.GetArchitectureDependentEnv\("RELATED_IMAGE_internal_rest_backup_server"\)\))|\1// \2|' \
+-e 's|(\t)(defaultGatewayAuthenticationSidecarImage = util.GetDeploymentEnv\(operatorDeployment, util.GetArchitectureDependentEnv\("RELATED_IMAGE_gateway_authentication_sidecar"\)\))|\1// \2|' \
+-e 's|(\t)(defaultGatewayAuthorizationSidecarImage = util.GetDeploymentEnv\(operatorDeployment, util.GetArchitectureDependentEnv\("RELATED_IMAGE_gateway_authorization_sidecar"\)\))|\1// \2|' \
+-e 's|(\t)(defaultGatewayHeaderProxySidecarImage = util.GetDeploymentEnv\(operatorDeployment, util.GetArchitectureDependentEnv\("RELATED_IMAGE_gateway_header_sidecar"\)\))|\1// \2|'
 
 popd >/dev/null || exit
