@@ -24,7 +24,7 @@ NOTE: The job can be configured to sync from any upstream che-operator branch, e
 
 ### Metadata container
 
-* Metadata for the CRW operator is contained in this repo. See link:https://github.com/redhat-developer/codeready-workspaces-operator/tree/master/manifests[manifests], link:https://github.com/redhat-developer/codeready-workspaces-operator/tree/master/metadata[metadata] and link:https://github.com/redhat-developer/codeready-workspaces-operator/tree/master/deploy[deploy] folders, and this link:https://github.com/redhat-developer/codeready-workspaces-operator/blob/master/operator-metadata.Dockerfile[operator-metadata.Dockerfile].
+* Metadata for the CRW operator is contained in this repo. See link:https://github.com/redhat-developer/codeready-workspaces-operator/tree/master/manifests[manifests], link:https://github.com/redhat-developer/codeready-workspaces-operator/tree/master/metadata[metadata] and link:https://github.com/redhat-developer/codeready-workspaces-operator/tree/master/bundle[bundle] folders, and this link:https://github.com/redhat-developer/codeready-workspaces-operator/blob/master/operator-metadata.Dockerfile[operator-metadata.Dockerfile].
 
 * The metadata is then synced to the link:http://pkgs.devel.redhat.com/cgit/containers/codeready-workspaces-operator-metadata/?h=crw-2-rhel-8[downstream repo] via a job located here:
 
@@ -46,7 +46,7 @@ NOTE: The job can be configured to sync from any upstream che-operator branch, e
 
 * Once the operator and metadata is rebuilt, a new build of link:https://github.com/redhat-developer/codeready-workspaces-chectl[crwctl] is triggered.
 
-* This is triggered because the CRW operator-metadata's link:https://github.com/redhat-developer/codeready-workspaces-operator/tree/master/deploy[deploy folder] is used in crwctl to do deployment when there is no OLM present on the target cluster (OCP 3.11 and 4.1).
+* This is triggered because the CRW operator-metadata's link:https://github.com/redhat-developer/codeready-workspaces-operator/tree/master/bundle[bundle folder] is used in crwctl to do deployment when there is no OLM present on the target cluster (OCP 3.11 and 4.1).
 
 See crwctl job located here:
 
