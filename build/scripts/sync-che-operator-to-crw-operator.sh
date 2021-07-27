@@ -281,8 +281,6 @@ rm -rf "${TARGETDIR}/pkg/controller"
 echo "Delete ${TARGETDIR}/bundle/nightly/eclipse-che-preview-kubernetes ${TARGETDIR}/bundle/stable"
 rm -rf "${TARGETDIR}/bundle/nightly/eclipse-che-preview-kubernetes"
 rm -rf "${TARGETDIR}/bundle/stable"
-# todo remove extra files from pkd/deploy
-# todo check tests, compilation, image build
 
 # copy extra files
 cp -f "${SOURCEDIR}/main.go" "${TARGETDIR}/main.go"
@@ -301,10 +299,11 @@ rm -rf "${TARGETDIR}/pkg/deploy/server/che_configmap_test.go"
 rm -rf "${TARGETDIR}/vendor"
 cp -rf "${SOURCEDIR}/vendor" "${TARGETDIR}/vendor"
 
-# Fix tests
-sed -ri 's|Images: .*"che-workspace-plugin-broker-metadata=.*"|Images: "che-workspace-plugin-broker-artifacts=registry.redhat.io/codeready-workspaces/pluginbroker-artifacts-rhel8:2.11;che-workspace-plugin-broker-metadata=registry.redhat.io/codeready-workspaces/pluginbroker-metadata-rhel8:2.11"|' "${TARGETDIR}/controllers/che/checluster_controller_test.go"
-
-sed -ri 's|defaultInternalRestBackupServerImage = GetDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_internal_rest_backup_server"))||' "${TARGETDIR}/pkg/deploy/defaults.go"
+# Comment not used images
+sed -ri 's|(\t)(defaultCheTLSSecretsCreationJobImage = util.GetDeploymentEnv\(operatorDeployment, util.GetArchitectureDependentEnv\("RELATED_IMAGE_che_tls_secrets_creation_job"\)\))|\1// \2|' "${TARGETDIR}/pkg/deploy/defaults.go"
+sed -ri 's|(\t)(defaultInternalRestBackupServerImage = util.GetDeploymentEnv\(operatorDeployment, util.GetArchitectureDependentEnv\("RELATED_IMAGE_internal_rest_backup_server"\)\))|\1// \2|' "${TARGETDIR}/pkg/deploy/defaults.go"
+sed -ri 's|(\t)(defaultGatewayAuthenticationSidecarImage = util.GetDeploymentEnv\(operatorDeployment, util.GetArchitectureDependentEnv\("RELATED_IMAGE_gateway_authentication_sidecar"\)\))|\1// \2|' "${TARGETDIR}/pkg/deploy/defaults.go"
+sed -ri 's|(\t)(defaultGatewayAuthorizationSidecarImage = util.GetDeploymentEnv\(operatorDeployment, util.GetArchitectureDependentEnv\("RELATED_IMAGE_gateway_authorization_sidecar"\)\))|\1// \2|' "${TARGETDIR}/pkg/deploy/defaults.go"
+sed -ri 's|(\t)(defaultGatewayHeaderProxySidecarImage = util.GetDeploymentEnv\(operatorDeployment, util.GetArchitectureDependentEnv\("RELATED_IMAGE_gateway_header_sidecar"\)\))|\1// \2|' "${TARGETDIR}/pkg/deploy/defaults.go"
 
 popd >/dev/null || exit
-
