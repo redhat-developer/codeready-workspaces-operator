@@ -214,7 +214,6 @@ declare -A operator_replacements=(
 )
 
 OPERATOR_DEPLOYMENT_YAML="config/manager/manager.yaml"
-
 for updateName in "${!operator_replacements[@]}"; do
 	updateVal="${operator_replacements[$updateName]}"
 	replaceEnvVarOperatorYaml "${TARGETDIR}/${OPERATOR_DEPLOYMENT_YAML}" "${COPYRIGHT}" '.spec.template.spec.containers[0].env'
@@ -253,10 +252,9 @@ done
 # update second container image from quay.io/che-incubator/devworkspace-che-operator:ci to CRW_DWCO_IMAGE
 replaceField "${TARGETDIR}/${OPERATOR_DEPLOYMENT_YAML}" '.spec.template.spec.containers[1].image' "${CRW_DWCO_IMAGE}" "${COPYRIGHT}"
 
-CR_YAML="config/samples/org.eclipse.che_v1_checluster.yaml"
-
 # see both sync-che-o*.sh scripts - need these since we're syncing to different midstream/dowstream repos
 # yq changes - transform env vars from Che to CRW values
+CR_YAML="config/samples/org.eclipse.che_v1_checluster.yaml"
 changed="$(cat "${TARGETDIR}/${CR_YAML}" | \
 yq  -y '.spec.server.devfileRegistryImage=""|.spec.server.pluginRegistryImage=""' | \
 yq  -y '.spec.server.cheFlavor="codeready"' | \

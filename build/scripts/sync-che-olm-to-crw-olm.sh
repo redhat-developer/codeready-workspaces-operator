@@ -325,7 +325,7 @@ for CSVFILE in ${TARGETDIR}/manifests/codeready-workspaces.csv.yaml; do
 	# update second container image from quay.io/che-incubator/devworkspace-che-operator:ci to CRW_DWCO_IMAGE
 	replaceField "${CSVFILE}" '.spec.install.spec.deployments[].spec.template.spec.containers[1].image' "${CRW_DWCO_IMAGE}" "${COPYRIGHT}"
 	# add more RELATED_IMAGE_ fields for the images referenced by the registries
-	source "${SCRIPTS_DIR}/insert-related-images-to-csv.sh" -v "${CSV_VERSION}" -t "${TARGETDIR}" --crw-branch "${MIDSTM_BRANCH}"
+	"${SCRIPTS_DIR}/insert-related-images-to-csv.sh" -v "${CSV_VERSION}" -t "${TARGETDIR}" --crw-branch "${MIDSTM_BRANCH}"
 
 	# echo "[INFO] ${0##*/} :: Sort env var in ${CSVFILE}:"
 	yq -Y '.spec.install.spec.deployments[].spec.template.spec.containers[0].env |= sort_by(.name)' "${CSVFILE}" > "${CSVFILE}.2"
@@ -343,18 +343,9 @@ for CSVFILE in ${TARGETDIR}/manifests/codeready-workspaces.csv.yaml; do
 	fi
 done
 
-# simple copy - old way CRW 2.8
-# mkdir -p ${TARGETDIR}/deploy/crds ${TARGETDIR}/manifests/
-# for CRDFILE in \
-# 	"${TARGETDIR}/manifests/codeready-workspaces.crd.yaml" \
-# 	"${TARGETDIR}/config/crd/bases/org_v1_che_crd.yaml"; do
-# 	cp "${SOURCEDIR}"/bundle/${OLM_CHANNEL}/eclipse-che-preview-openshift/manifests/*crd.yaml "${CRDFILE}"
-# done
-
-CR_YAML="config/samples/org.eclipse.che_v1_checluster.yaml"
-
 # see both sync-che-o*.sh scripts - need these since we're syncing to different midstream/dowstream repos
 # yq changes - transform env vars from Che to CRW values
+CR_YAML="config/samples/org.eclipse.che_v1_checluster.yaml"
 changed="$(
 yq  -y '.spec.server.devfileRegistryImage=""|.spec.server.pluginRegistryImage=""' "${TARGETDIR}/${CR_YAML}" | \
 yq  -y '.spec.server.cheFlavor="codeready"' | \
