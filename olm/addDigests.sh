@@ -13,7 +13,8 @@
 set +x
 set -e
 
-SCRIPTS_DIR=$(cd "$(dirname "$0")"; pwd)
+SCRIPT=$(readlink -f "${BASH_SOURCE[0]}")
+SCRIPTS_DIR=$(dirname ${SCRIPT})
 BASE_DIR="$(pwd)"
 QUIET=""
 
@@ -29,7 +30,7 @@ command -v yq >/dev/null 2>&1 || { echo "yq is not installed. Aborting."; exit 1
 
 usage () {
 	echo "Usage:   $0 [-w WORKDIR] [-s CSV_FILE_PATH] [-o OPERATOR_DEPLOYMENT_FILE_PATH] [-t IMAGE_TAG] "
-	echo "Example: ./olm/addDigests.sh -w . -s deploy/olm-catalog/stable/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml -o deploy/operator.yaml -t 7.32.0"
+	echo "Example: ./olm/addDigests.sh -w . -s bundle/stable/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml -o config/manager/manager.yaml -t 7.32.0"
 }
 
 if [[ $# -lt 1 ]]; then usage; exit; fi
@@ -123,10 +124,22 @@ yq -riY "( .spec.relatedImages ) += [${RELATED_IMAGES}]" ${CSV_FILE}
 yq -riY "( .spec.install.spec.deployments[0].spec.template.spec.containers[0].env ) += [${RELATED_IMAGES_ENV}]" ${CSV_FILE}
 sed -i "${CSV_FILE}" -r -e "s|tag: |# tag: |"
 echo -e "$(cat ${SCRIPTS_DIR}/license.txt)\n$(cat ${CSV_FILE})" > ${CSV_FILE}
-
 echo "[INFO] CSV updated: ${CSV_FILE}"
 
 if [[ ${OPERATOR_FILE} ]]; then
+  # delete previous `RELATED_IMAGES`
+  envVarLength=$(cat "${OPERATOR_FILE}" | yq -r ".spec.template.spec.containers[0].env | length")
+  i=0
+  while [ "${i}" -lt "${envVarLength}" ]; do
+    envVarName=$(cat "${OPERATOR_FILE}" | yq -r '.spec.template.spec.containers[0].env['${i}'].name')
+    if [[ ${envVarName} =~ plugin_registry_image ]] || [[ ${envVarName} =~ devfile_registry_image ]]; then
+      yq -riY 'del(.spec.template.spec.containers[0].env['${i}'])' ${OPERATOR_FILE}
+      i=$((i-1))
+    fi
+    i=$((i+1))
+  done
+
+  # add new `RELATED_IMAGES`
   yq -riY "( .spec.template.spec.containers[0].env ) += [${RELATED_IMAGES_ENV}]" ${OPERATOR_FILE}
   echo -e "$(cat ${SCRIPTS_DIR}/license.txt)\n$(cat ${OPERATOR_FILE})" > ${OPERATOR_FILE}
   echo "[INFO] Operator deployment file updated: ${OPERATOR_FILE}"

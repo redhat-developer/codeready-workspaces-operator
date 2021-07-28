@@ -23,27 +23,28 @@ import (
 	v1 "k8s.io/api/apps/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 
-	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 )
 
 var (
-	defaultCheServerImage                      string
-	defaultCheVersion                          string
-	defaultDashboardImage                      string
-	defaultDevworkspaceCheOperatorImage        string
-	defaultDevworkspaceControllerImage         string
-	defaultPluginRegistryImage                 string
-	defaultDevfileRegistryImage                string
-	defaultCheTLSSecretsCreationJobImage       string
-	defaultPvcJobsImage                        string
-	defaultPostgresImage                       string
-	defaultKeycloakImage                       string
-	defaultSingleHostGatewayImage              string
-	defaultSingleHostGatewayConfigSidecarImage string
-	defaultInternalRestBackupServerImage       string
-	defaultGatewayAuthenticationSidecarImage   string
-	defaultGatewayAuthorizationSidecarImage    string
-	defaultGatewayHeaderProxySidecarImage      string
+	defaultCheServerImage                       string
+	defaultCheVersion                           string
+	defaultDashboardImage                       string
+	defaultDevworkspaceCheOperatorImage         string
+	defaultDevworkspaceControllerImage          string
+	defaultPluginRegistryImage                  string
+	defaultDevfileRegistryImage                 string
+	defaultCheTLSSecretsCreationJobImage        string
+	defaultPvcJobsImage                         string
+	defaultPostgresImage                        string
+	defaultKeycloakImage                        string
+	defaultSingleHostGatewayImage               string
+	defaultSingleHostGatewayImageNativeUserMode string
+	defaultSingleHostGatewayConfigSidecarImage  string
+	defaultInternalRestBackupServerImage        string
+	defaultGatewayAuthenticationSidecarImage    string
+	defaultGatewayAuthorizationSidecarImage     string
+	defaultGatewayHeaderProxySidecarImage       string
 
 	defaultCheWorkspacePluginBrokerMetadataImage  string
 	defaultCheWorkspacePluginBrokerArtifactsImage string
@@ -183,17 +184,18 @@ func InitDefaultsFromFile(defaultsPath string) {
 	defaultPostgresImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres"))
 	defaultKeycloakImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_keycloak"))
 	defaultSingleHostGatewayImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway"))
+	defaultSingleHostGatewayImageNativeUserMode = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway_native_user_mode"))
 	defaultSingleHostGatewayConfigSidecarImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway_config_sidecar"))
-	defaultGatewayAuthenticationSidecarImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_authentication_sidecar"))
-	defaultGatewayAuthorizationSidecarImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_authorization_sidecar"))
+	// defaultGatewayAuthenticationSidecarImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_authentication_sidecar"))
+	// defaultGatewayAuthorizationSidecarImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_authorization_sidecar"))
 	defaultCheWorkspacePluginBrokerMetadataImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_metadata"))
 	defaultCheWorkspacePluginBrokerArtifactsImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_artifacts"))
 	defaultCheServerSecureExposerJwtProxyImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image"))
-	defaultInternalRestBackupServerImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_internal_rest_backup_server"))
+	// defaultInternalRestBackupServerImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_internal_rest_backup_server"))
 
 	// Don't get some k8s specific env
 	if !util.IsOpenShift {
-		defaultCheTLSSecretsCreationJobImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_che_tls_secrets_creation_job"))
+		// defaultCheTLSSecretsCreationJobImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_che_tls_secrets_creation_job"))
 	}
 }
 
@@ -329,7 +331,15 @@ func DefaultCheServerSecureExposerJwtProxyImage(cr *orgv1.CheCluster) string {
 }
 
 func DefaultSingleHostGatewayImage(cr *orgv1.CheCluster) string {
-	return patchDefaultImageName(cr, defaultSingleHostGatewayImage)
+	// `nativeUserMode` uses Traefik local plugins, which is supported from version 2.5 that is
+	// currently in Release Candidate. As we don't want to use RC version in our stable release,
+	// we're using 2 images now. As soon as Traefik 2.5 stable will be releases, we will remove
+	// `defaultSingleHostGatewayImageNativeUserMode` and use single image again.
+	if util.IsNativeUserModeEnabled(cr) {
+		return patchDefaultImageName(cr, defaultSingleHostGatewayImageNativeUserMode)
+	} else {
+		return patchDefaultImageName(cr, defaultSingleHostGatewayImage)
+	}
 }
 
 func DefaultSingleHostGatewayConfigSidecarImage(cr *orgv1.CheCluster) string {
@@ -455,11 +465,12 @@ func InitDefaultsFromEnv() {
 	defaultPostgresImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres"))
 	defaultKeycloakImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_keycloak"))
 	defaultSingleHostGatewayImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway"))
+	defaultSingleHostGatewayImageNativeUserMode = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway_native_user_mode"))
 	defaultSingleHostGatewayConfigSidecarImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway_config_sidecar"))
-	defaultInternalRestBackupServerImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_internal_rest_backup_server"))
-	defaultGatewayAuthenticationSidecarImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_authentication_sidecar"))
-	defaultGatewayAuthorizationSidecarImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_authorization_sidecar"))
-	defaultGatewayHeaderProxySidecarImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_header_sidecar"))
+	// defaultInternalRestBackupServerImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_internal_rest_backup_server"))
+	// defaultGatewayAuthenticationSidecarImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_authentication_sidecar"))
+	// defaultGatewayAuthorizationSidecarImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_authorization_sidecar"))
+	// defaultGatewayHeaderProxySidecarImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_header_sidecar"))
 
 	// CRW images for that are mentioned in the Che server che.properties
 	// For CRW these should be synced by hand with images stored in RH registries
@@ -470,7 +481,7 @@ func InitDefaultsFromEnv() {
 
 	// Don't get some k8s specific env
 	if !util.IsOpenShift {
-		defaultCheTLSSecretsCreationJobImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_tls_secrets_creation_job"))
+		// defaultCheTLSSecretsCreationJobImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_tls_secrets_creation_job"))
 	}
 }
 

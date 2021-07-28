@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2012-2020 Red Hat, Inc.
+# Copyright (c) 2012-2021 Red Hat, Inc.
 # This program and the accompanying materials are made
 # available under the terms of the Eclipse Public License 2.0
 # which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -53,8 +53,15 @@ run() {
   installCatalogSource "${platform}" "${namespace}" "${CATALOG_IMAGENAME}"
 
   getBundleListFromCatalogSource "${platform}" "${namespace}"
-  getPreviousCSVInfo "${channel}"
+  getPreviousCSVInfo "${channel}" 
   getLatestCSVInfo "${channel}"
+
+  echo "[INFO] Test update from version: ${PREVIOUS_CSV_BUNDLE_IMAGE} to: ${LATEST_CSV_BUNDLE_IMAGE}"
+
+  if [ "${PREVIOUS_CSV_BUNDLE_IMAGE}" == "${LATEST_CSV_BUNDLE_IMAGE}" ]; then
+    echo "[ERROR] Nothing to update. OLM channel '${channel}' contains only one bundle."
+    exit 1
+  fi
 
   forcePullingOlmImages "${namespace}" "${PREVIOUS_CSV_BUNDLE_IMAGE}"
   forcePullingOlmImages "${namespace}" "${LATEST_CSV_BUNDLE_IMAGE}"

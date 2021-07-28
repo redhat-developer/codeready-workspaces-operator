@@ -18,7 +18,7 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/util"
 
-	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 )
 
 func TestDefaultFromEnv(t *testing.T) {
@@ -90,7 +90,7 @@ func TestDefaultFromEnv(t *testing.T) {
 func TestCorrectImageName(t *testing.T) {
 	testCases := map[string]string{
 		"registry.redhat.io/codeready-workspaces/crw-2-rhel8-operator:latest":  "crw-2-rhel8-operator:latest",
-		"eclipse/che-operator:7.1.0":            "che-operator:7.1.0",
+		"registry.redhat.io/codeready-workspaces/server-operator-rhel8:2.0": "server-operator-rhel8:2.0",
 		"registry.redhat.io/codeready-workspaces/crw-2-rhel8-operator:2.11":  "crw-2-rhel8-operator:2.11",
 	}
 	for k, v := range testCases {
