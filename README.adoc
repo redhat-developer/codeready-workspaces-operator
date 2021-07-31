@@ -1,5 +1,18 @@
 ## Building CRW Operator and Metadata containers
 
+This repo is deprecated. Sync and transformation code has moved here:
+
+* https://github.com/redhat-developer/codeready-workspaces-images/tree/crw-2-rhel-8/codeready-workspaces-operator
+* https://github.com/redhat-developer/codeready-workspaces-images/tree/crw-2-rhel-8/codeready-workspaces-operator-metadata
+
+Over time this repo will be purged so as to avoid confusion. 
+
+See also these issues:
+
+* https://issues.redhat.com/browse/CRW-1846
+* https://issues.redhat.com/browse/CRW-1621
+* https://issues.redhat.com/browse/CRW-1913
+
 ### Operator container
 
 * The CRW operator has most of code in the upstream link:https://github.com/eclipse-che/che-operator/[che-operator] repo, including this link:https://github.com/eclipse-che/che-operator/blob/master/Dockerfile[Dockerfile].
@@ -12,7 +25,7 @@
 
 The Jenkinsfile transforms the Che code into CRW code and commits the changed code directly to downstream so there's no need for a branch in che-operator or to have code duplicated here. 
 
-NOTE: The job can be configured to sync from any upstream che-operator branch, eg., `SOURCE_BRANCH` = `7.26.x` or `master`.
+NOTE: The job can be configured to sync from any upstream che-operator branch, eg., `SOURCE_BRANCH` = `7.34.x` or `master`.
 
 * Once the sync is done:
 
@@ -32,7 +45,7 @@ NOTE: The job can be configured to sync from any upstream che-operator branch, e
   - https://gitlab.cee.redhat.com/codeready-workspaces/crw-jenkins/-/tree/master/jobs/CRW_CI (sources)
   - https://github.com/redhat-developer/codeready-workspaces-images#jenkins-jobs (copied sources)
 
-NOTE: The job can be configured to sync from any upstream che-operator branch, eg., `SOURCE_BRANCH` = `7.26.x` or `master`.
+NOTE: The job can be configured to sync from any upstream che-operator branch, eg., `SOURCE_BRANCH` = `7.34.x` or `master`.
 
 * Once the sync is done:
 
