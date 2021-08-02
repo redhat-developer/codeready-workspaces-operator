@@ -59,10 +59,10 @@ CRW_OPERATOR="crw-2-rhel8-operator"
 CRW_BROKER_METADATA_IMAGE="${CRW_RRIO}/pluginbroker-metadata-rhel8:${CRW_VERSION}"
 CRW_BROKER_ARTIFACTS_IMAGE="${CRW_RRIO}/pluginbroker-artifacts-rhel8:${CRW_VERSION}"
 CRW_CONFIGBUMP_IMAGE="${CRW_RRIO}/configbump-rhel8:${CRW_VERSION}"
-CRW_DASHBOARD_IMAGE="${CRW_RRIO}/dashboard-rhel8:${CRW_VERSION}" 
+CRW_DASHBOARD_IMAGE="${CRW_RRIO}/dashboard-rhel8:${CRW_VERSION}"
 CRW_DEVFILEREGISTRY_IMAGE="${CRW_RRIO}/devfileregistry-rhel8:${CRW_VERSION}"
-CRW_DWO_IMAGE="${CRW_RRIO}/devworkspace-controller-rhel8:${CRW_VERSION}" 
-CRW_DWCO_IMAGE="${CRW_RRIO}/devworkspace-rhel8:${CRW_VERSION}" 
+CRW_DWO_IMAGE="${CRW_RRIO}/devworkspace-controller-rhel8:${CRW_VERSION}"
+CRW_DWCO_IMAGE="${CRW_RRIO}/devworkspace-rhel8:${CRW_VERSION}"
 CRW_JWTPROXY_IMAGE="${CRW_RRIO}/jwtproxy-rhel8:${CRW_VERSION}"
 CRW_PLUGINREGISTRY_IMAGE="${CRW_RRIO}/pluginregistry-rhel8:${CRW_VERSION}"
 CRW_SERVER_IMAGE="${CRW_RRIO}/server-rhel8:${CRW_VERSION}"
@@ -82,7 +82,7 @@ rsync -azrlt ${COPY_FOLDERS} ${TARGETDIR}/
 # sed changes
 while IFS= read -r -d '' d; do
 	if [[ -d "${SOURCEDIR}/${d%/*}" ]]; then mkdir -p "${TARGETDIR}"/"${d%/*}"; fi
-	if [[ -f "${TARGETDIR}/${d}" ]]; then 
+	if [[ -f "${TARGETDIR}/${d}" ]]; then
 		sed -i "${TARGETDIR}/${d}" -r \
 			-e "s|identityProviderPassword: ''|identityProviderPassword: 'admin'|g" \
 			-e "s|quay.io/eclipse/che-operator:.+|${CRW_RRIO}/${CRW_OPERATOR}:latest|" \
@@ -233,7 +233,7 @@ done
 
 # CRW-1579 set correct crw-2-rhel8-operator image and tag in operator deployment yaml
 oldImage=$(yq -r '.spec.template.spec.containers[0].image' "${TARGETDIR}/${OPERATOR_DEPLOYMENT_YAML}")
-if [[ $oldImage ]]; then 
+if [[ $oldImage ]]; then
 	replaceField "${TARGETDIR}/${OPERATOR_DEPLOYMENT_YAML}" ".spec.template.spec.containers[0].image" "${oldImage%%:*}:${CRW_VERSION}" "${COPYRIGHT}"
 fi
 
@@ -271,7 +271,7 @@ fi
 yq -yY '.spec.template.spec.containers[0].env |= sort_by(.name)' "${TARGETDIR}/${OPERATOR_DEPLOYMENT_YAML}" > "${TARGETDIR}/${OPERATOR_DEPLOYMENT_YAML}2"
 yq -yY '.spec.template.spec.containers[1].env |= sort_by(.name)' "${TARGETDIR}/${OPERATOR_DEPLOYMENT_YAML}2" > "${TARGETDIR}/${OPERATOR_DEPLOYMENT_YAML}"
 echo "${COPYRIGHT}$(cat "${TARGETDIR}/${OPERATOR_DEPLOYMENT_YAML}")" > "${TARGETDIR}/${OPERATOR_DEPLOYMENT_YAML}2"
-mv "${TARGETDIR}/${OPERATOR_DEPLOYMENT_YAML}2" "${TARGETDIR}/${OPERATOR_DEPLOYMENT_YAML}" 
+mv "${TARGETDIR}/${OPERATOR_DEPLOYMENT_YAML}2" "${TARGETDIR}/${OPERATOR_DEPLOYMENT_YAML}"
 
 # delete unneeded files
 rm -rf "${TARGETDIR}/deploy"
@@ -301,6 +301,7 @@ cp -rf "${SOURCEDIR}/vendor" "${TARGETDIR}/vendor"
 sed -i "${TARGETDIR}/pkg/deploy/defaults.go" -r \
 -e 's|(\t)(defaultCheTLSSecretsCreationJobImage = getDefaultFromEnv\(util.GetArchitectureDependentEnv\("RELATED_IMAGE_che_tls_secrets_creation_job"\)\))|\1// \2|' \
 -e 's|(\t)(defaultInternalRestBackupServerImage = getDefaultFromEnv\(util.GetArchitectureDependentEnv\("RELATED_IMAGE_internal_rest_backup_server"\)\))|\1// \2|' \
+-e 's|(\t)(defaultInternalRestBackupServerImage = getDefaultFromEnv\(util.GetArchitectureDependentEnv\("RELATED_IMAGE_single_host_gateway_native_user_mode"\)\))|\1// \2|' \
 -e 's|(\t)(defaultGatewayAuthenticationSidecarImage = getDefaultFromEnv\(util.GetArchitectureDependentEnv\("RELATED_IMAGE_gateway_authentication_sidecar"\)\))|\1// \2|' \
 -e 's|(\t)(defaultGatewayAuthorizationSidecarImage = getDefaultFromEnv\(util.GetArchitectureDependentEnv\("RELATED_IMAGE_gateway_authorization_sidecar"\)\))|\1// \2|' \
 -e 's|(\t)(defaultGatewayHeaderProxySidecarImage = getDefaultFromEnv\(util.GetArchitectureDependentEnv\("RELATED_IMAGE_gateway_header_sidecar"\)\))|\1// \2|'
@@ -308,6 +309,7 @@ sed -i "${TARGETDIR}/pkg/deploy/defaults.go" -r \
 sed -i "${TARGETDIR}/pkg/deploy/defaults.go" -r \
 -e 's|(\t)(defaultCheTLSSecretsCreationJobImage = util.GetDeploymentEnv\(operatorDeployment, util.GetArchitectureDependentEnv\("RELATED_IMAGE_che_tls_secrets_creation_job"\)\))|\1// \2|' \
 -e 's|(\t)(defaultInternalRestBackupServerImage = util.GetDeploymentEnv\(operatorDeployment, util.GetArchitectureDependentEnv\("RELATED_IMAGE_internal_rest_backup_server"\)\))|\1// \2|' \
+-e 's|(\t)(defaultInternalRestBackupServerImage = util.GetDeploymentEnv\(operatorDeployment, util.GetArchitectureDependentEnv\("RELATED_IMAGE_single_host_gateway_native_user_mode"\)\))|\1// \2|' \
 -e 's|(\t)(defaultGatewayAuthenticationSidecarImage = util.GetDeploymentEnv\(operatorDeployment, util.GetArchitectureDependentEnv\("RELATED_IMAGE_gateway_authentication_sidecar"\)\))|\1// \2|' \
 -e 's|(\t)(defaultGatewayAuthorizationSidecarImage = util.GetDeploymentEnv\(operatorDeployment, util.GetArchitectureDependentEnv\("RELATED_IMAGE_gateway_authorization_sidecar"\)\))|\1// \2|' \
 -e 's|(\t)(defaultGatewayHeaderProxySidecarImage = util.GetDeploymentEnv\(operatorDeployment, util.GetArchitectureDependentEnv\("RELATED_IMAGE_gateway_header_sidecar"\)\))|\1// \2|'
