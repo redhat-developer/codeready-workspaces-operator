@@ -1,4 +1,0 @@
-- op: replace
-  path: /metadata/name
-  value:
-    eclipse-che-preview-openshift.v0.0.0
