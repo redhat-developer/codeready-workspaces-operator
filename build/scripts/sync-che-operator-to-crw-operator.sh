@@ -88,7 +88,6 @@ while IFS= read -r -d '' d; do
 			-e "s|quay.io/eclipse/che-operator:.+|${CRW_RRIO}/${CRW_OPERATOR}:latest|" \
 			-e "s|Eclipse Che|CodeReady Workspaces|g" \
 			-e 's|(DefaultCheFlavor.*=) "che"|\1 "codeready"|' \
-			-e 's|(DefaultPvcStrategy.*=) "common"|\1 "per-workspace"|' \
 			-e 's|che/operator|codeready/operator|' \
 			-e 's|che-operator|codeready-operator|' \
 			-e 's|name: eclipse-che|name: codeready-workspaces|' \
@@ -259,7 +258,6 @@ changed="$(cat "${TARGETDIR}/${CR_YAML}" | \
 yq  -y '.spec.server.devfileRegistryImage=""|.spec.server.pluginRegistryImage=""' | \
 yq  -y '.spec.server.cheFlavor="codeready"' | \
 yq  -y '.spec.server.workspaceNamespaceDefault="<username>-codeready"' | \
-yq  -y '.spec.storage.pvcStrategy="per-workspace"' | \
 yq  -y '.spec.auth.identityProviderAdminUserName="admin"|.spec.auth.identityProviderImage=""' | \
 yq  -y 'del(.spec.k8s)')" && \
 echo "${COPYRIGHT}${changed}" > "${TARGETDIR}/${CR_YAML}"
